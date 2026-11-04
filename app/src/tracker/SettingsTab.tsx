@@ -1,47 +1,41 @@
 import { useEffect, useState } from "react";
 import {
-  PET_SIZES,
+  EMPTY_STATUS,
+  notifyDataChanged,
+  setAccount,
+  setCalendar,
+  setSyncStatus,
+} from "../lib/data";
+import { syncStatusText } from "../lib/format";
+import { deleteSecret } from "../lib/secrets";
+import {
   getSettings,
   onSettingsChanged,
+  openOnboarding,
   quitApp,
+  resetApp,
   setAlwaysOnTop,
   setAutostart,
   setPetScale,
   setPetVisible,
   type Settings,
 } from "../lib/settings";
+import { SizePicker, Toggle } from "../ui";
+import { useAppData } from "./useAppData";
 
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="row">
-      <span className="stack tight">
-        <span>{label}</span>
-        {hint && <span className="muted small">{hint}</span>}
-      </span>
-      <input
-        type="checkbox"
-        role="switch"
-        className="switch"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </label>
-  );
+async function disconnectGitHub() {
+  await deleteSecret("github_token");
+  await setAccount(null);
+  await setCalendar(null);
+  await setSyncStatus({ ...EMPTY_STATUS, error: "not_connected" });
+  await notifyDataChanged();
 }
 
 export function SettingsTab() {
   const [s, setS] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const data = useAppData();
 
   useEffect(() => {
     const refresh = () => getSettings().then(setS);
@@ -53,12 +47,47 @@ export function SettingsTab() {
   }, []);
 
   const run = (p: Promise<unknown>) =>
-    p.then(() => setError(null)).catch(() => setError("That setting couldn't be changed. Try again?"));
+    p.then(() => setError(null)).catch(() => setError("That didn't work. Try again?"));
 
-  if (!s) return null;
+  if (!s || !data) return null;
+  const { account, status } = data;
 
   return (
     <section className="stack">
+      <div className="card stack">
+        <h2>GitHub</h2>
+        {account ? (
+          <>
+            <div className="row">
+              <div className="account">
+                <img src={account.avatarUrl} alt="" />
+                <span className="stack tight">
+                  <strong>@{account.login}</strong>
+                  <span className="muted small">{syncStatusText(status)}</span>
+                </span>
+              </div>
+              <button
+                className="button"
+                onClick={() => run(disconnectGitHub().then(() => openOnboarding("github")))}
+              >
+                Disconnect
+              </button>
+            </div>
+            <p className="muted small">
+              Disconnecting removes your GitHub sign-in from this Mac. To revoke Desk Pet's access
+              entirely, go to GitHub → Settings → Applications.
+            </p>
+          </>
+        ) : (
+          <div className="row">
+            <span className="muted">Not connected</span>
+            <button className="button" onClick={() => run(openOnboarding("github"))}>
+              Connect GitHub
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="card stack">
         <h2>Pet</h2>
         <Toggle label="Show pet on desktop" checked={s.petVisible} onChange={(v) => run(setPetVisible(v))} />
@@ -67,20 +96,7 @@ export function SettingsTab() {
           checked={s.alwaysOnTop}
           onChange={(v) => run(setAlwaysOnTop(v))}
         />
-        <div className="row">
-          <span>Size</span>
-          <div className="segmented">
-            {PET_SIZES.map((size) => (
-              <button
-                key={size.scale}
-                className={s.petScale === size.scale ? "active" : ""}
-                onClick={() => run(setPetScale(size.scale))}
-              >
-                {size.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <SizePicker value={s.petScale} onChange={(scale) => run(setPetScale(scale))} />
       </div>
 
       <div className="card stack">
@@ -99,6 +115,28 @@ export function SettingsTab() {
           <button className="button" onClick={() => quitApp()}>
             Quit
           </button>
+        </div>
+        <div className="row">
+          <span className="stack tight">
+            <span>Start over</span>
+            <span className="muted small">
+              {confirmReset
+                ? "This forgets your GitHub connection and all settings, then runs setup again."
+                : "Reset Desk Pet as if it were freshly installed."}
+            </span>
+          </span>
+          {confirmReset ? (
+            <div className="segmented">
+              <button onClick={() => setConfirmReset(false)}>Cancel</button>
+              <button className="danger" onClick={() => run(resetApp())}>
+                Reset
+              </button>
+            </div>
+          ) : (
+            <button className="button" onClick={() => setConfirmReset(true)}>
+              Reset…
+            </button>
+          )}
         </div>
       </div>
 

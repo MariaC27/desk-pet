@@ -1,14 +1,10 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef } from "react";
 import { MAX_STAGE, stageFor } from "../lib/growth";
-import {
-  DEFAULT_PET_STATE,
-  loadPetState,
-  onCelebrate,
-  onPetState,
-  type PetState,
-} from "../lib/petState";
+import { onDataChanged } from "../lib/data";
+import { DEFAULT_PET_STATE, currentPetState, onCelebrate, type PetState } from "../lib/petState";
 import { openTracker, setHitMask, showPetMenu } from "../lib/settings";
+import { startSyncLoop } from "../lib/sync";
 import { ENVELOPE_POS, H, W, composePet, hitMask, type Mood } from "./sprite";
 
 const TICK_MS = 100;
@@ -17,6 +13,8 @@ const FRESH_WEEK_MS = 8_000; // cheerful seed right after the weekly reset
 const STAGE_UP_MS = 2_500;
 const FULL_BLOOM_MS = 4_500;
 const DRAG_THRESHOLD = 3;
+/** Re-derive state this often so the weekly reset and "resting" happen on time, offline too. */
+const REFRESH_MS = 60_000;
 
 export function PetWindow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,10 +48,18 @@ export function PetWindow() {
       state.current = next;
     };
 
-    loadPetState().then((s) => (state.current = s));
-    const unlisten = [onPetState(apply), onCelebrate(() => setFlash("celebrating", FULL_BLOOM_MS))];
-    return () => unlisten.forEach((p) => p.then((f) => f()));
+    const refresh = () => currentPetState().then(apply);
+    // first load is silent: no celebration for growth that happened while closed
+    currentPetState().then((s) => (state.current = s));
+    const id = setInterval(refresh, REFRESH_MS);
+    const unlisten = [onDataChanged(refresh), onCelebrate(() => setFlash("celebrating", FULL_BLOOM_MS))];
+    return () => {
+      clearInterval(id);
+      unlisten.forEach((p) => p.then((f) => f()));
+    };
   }, []);
+
+  useEffect(() => startSyncLoop(), []);
 
   // render loop
   useEffect(() => {

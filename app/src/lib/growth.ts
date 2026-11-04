@@ -1,9 +1,9 @@
 // Growth rules: the plant resets to a seed at the start of each week
-// (Sunday 11:59 PM -> Monday 12:00 AM, local time) and grows through stages
+// (Saturday 11:59 PM -> Sunday 12:00 AM, local time) and grows through stages
 // as that week's contributions add up. All tunable numbers live here.
 
-/** 0 = Sunday, 1 = Monday. */
-export const WEEK_STARTS_ON = 1;
+/** 0 = Sunday, 1 = Monday. Sunday matches the columns of GitHub's contribution graph. */
+export const WEEK_STARTS_ON = 0;
 
 export const STAGES = [
   { name: "Seed", min: 0 },
@@ -63,6 +63,15 @@ export function localDateKey(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/** ISO 8601 with the local UTC offset, e.g. "2026-11-02T00:00:00-08:00". */
+export function toOffsetISO(date: Date): string {
+  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return `${localDateKey(date)}T${time}${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
 }
 
 export interface CalendarDay {

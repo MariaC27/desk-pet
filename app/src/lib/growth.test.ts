@@ -27,30 +27,30 @@ describe("stageFor", () => {
   });
 });
 
-describe("week boundaries (Monday start, local time)", () => {
-  it("Sunday 11:59 PM still belongs to the week that started the previous Monday", () => {
-    const sunday = new Date(2026, 10, 8, 23, 59); // Sun Nov 8 2026
-    expect(localDateKey(startOfWeek(sunday))).toBe("2026-11-02");
+describe("week boundaries (Sunday start, local time)", () => {
+  it("Saturday 11:59 PM still belongs to the week that started the previous Sunday", () => {
+    const saturday = new Date(2026, 10, 7, 23, 59); // Sat Nov 7 2026
+    expect(localDateKey(startOfWeek(saturday))).toBe("2026-11-01");
   });
 
-  it("Monday 12:00 AM starts a new week", () => {
-    const monday = new Date(2026, 10, 9, 0, 0);
-    expect(localDateKey(startOfWeek(monday))).toBe("2026-11-09");
+  it("Sunday 12:00 AM starts a new week", () => {
+    const sunday = new Date(2026, 10, 8, 0, 0);
+    expect(localDateKey(startOfWeek(sunday))).toBe("2026-11-08");
   });
 
   it("next week starts 7 days later, across a month boundary", () => {
-    expect(localDateKey(startOfNextWeek(new Date(2026, 10, 25)))).toBe("2026-11-30");
+    expect(localDateKey(startOfNextWeek(new Date(2026, 10, 25)))).toBe("2026-11-29");
   });
 
   it("sums only the current week", () => {
     const days = [
-      { date: "2026-11-01", count: 9 }, // previous Sunday
-      { date: "2026-11-02", count: 2 },
-      { date: "2026-11-05", count: 3 },
-      { date: "2026-11-08", count: 1 },
-      { date: "2026-11-09", count: 7 }, // next Monday
+      { date: "2026-10-31", count: 9 }, // previous Saturday
+      { date: "2026-11-01", count: 2 },
+      { date: "2026-11-04", count: 3 },
+      { date: "2026-11-07", count: 1 },
+      { date: "2026-11-08", count: 7 }, // next Sunday
     ];
-    expect(weekCount(days, new Date(2026, 10, 8, 23, 59))).toBe(6);
-    expect(weekCount(days, new Date(2026, 10, 9, 0, 0))).toBe(7);
+    expect(weekCount(days, new Date(2026, 10, 7, 23, 59))).toBe(6);
+    expect(weekCount(days, new Date(2026, 10, 8, 0, 0))).toBe(7);
   });
 });

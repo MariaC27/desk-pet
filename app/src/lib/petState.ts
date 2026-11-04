@@ -1,7 +1,8 @@
-// The state the pet renders from. For now the dev panel writes it; Phase 2's
-// GitHub sync will compute it from the contribution calendar instead.
+// What the pet renders from, derived from the cached GitHub calendar. In dev
+// builds the dev panel can override it to preview any state.
 import { emit, listen } from "@tauri-apps/api/event";
-import { load } from "@tauri-apps/plugin-store";
+import { getCalendar, getDevOverride, getSyncStatus, type CalendarCache, type SyncStatus } from "./data";
+import { localDateKey, weekCount } from "./growth";
 
 export interface PetState {
   count: number; // contributions this week
@@ -17,22 +18,28 @@ export const DEFAULT_PET_STATE: PetState = {
   hasMessage: false,
 };
 
-const KEY = "petState";
-const store = () => load("settings.json", { autoSave: 200 });
+export function derivePetState(cal: CalendarCache | null, status: SyncStatus, now = new Date()): PetState {
+  const offline = status.error === "offline";
+  if (!cal) return { ...DEFAULT_PET_STATE, offline };
 
-export async function loadPetState(): Promise<PetState> {
-  const saved = await (await store()).get<Partial<PetState>>(KEY);
-  return { ...DEFAULT_PET_STATE, ...saved };
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const recentDays = [localDateKey(now), localDateKey(yesterday)];
+  const recent = cal.days.filter((d) => recentDays.includes(d.date)).reduce((n, d) => n + d.count, 0);
+
+  return {
+    count: weekCount(cal.days, now),
+    baseMood: recent > 0 ? "idle" : "resting",
+    offline,
+    hasMessage: false,
+  };
 }
 
-/** Persist and broadcast to every window. */
-export async function publishPetState(state: PetState) {
-  await (await store()).set(KEY, state);
-  await emit("pet:state", state);
+export async function currentPetState(now = new Date()): Promise<PetState> {
+  const override = import.meta.env.DEV ? await getDevOverride<PetState>() : null;
+  if (override) return override;
+  return derivePetState(await getCalendar(), await getSyncStatus(), now);
 }
-
-export const onPetState = (cb: (s: PetState) => void) =>
-  listen<PetState>("pet:state", (e) => cb(e.payload));
 
 export const celebrate = () => emit("pet:celebrate");
 export const onCelebrate = (cb: () => void) => listen("pet:celebrate", cb);

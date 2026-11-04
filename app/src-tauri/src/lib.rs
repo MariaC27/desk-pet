@@ -1,3 +1,5 @@
+mod secrets;
+
 use std::{sync::Mutex, thread, time::Duration};
 
 use tauri::{
@@ -28,6 +30,7 @@ struct HitMask(Mutex<Vec<bool>>);
 
 /// Tray menu items whose label/checked state changes at runtime.
 struct TrayItems {
+    status: MenuItem<Wry>,
     toggle_pet: MenuItem<Wry>,
     autostart: CheckMenuItem<Wry>,
 }
@@ -134,22 +137,88 @@ fn set_autostart(app: AppHandle, enabled: bool) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-fn open_tracker(app: AppHandle, tab: String) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("tracker") {
-        let _ = win.emit("tracker:tab", &tab);
+/// Focus a window if it's open (telling it which `route` to show), or create it.
+/// The route is passed to a fresh window as `window.__ROUTE__`.
+fn open_window(
+    app: &AppHandle,
+    label: &str,
+    route: &str,
+    configure: impl FnOnce(
+        WebviewWindowBuilder<'_, Wry, AppHandle>,
+    ) -> WebviewWindowBuilder<'_, Wry, AppHandle>,
+) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(label) {
+        let _ = win.emit_to(label, "route", route);
         win.show().map_err(|e| e.to_string())?;
         return win.set_focus().map_err(|e| e.to_string());
     }
-    let tab_json = serde_json::to_string(&tab).map_err(|e| e.to_string())?;
-    let win = WebviewWindowBuilder::new(&app, "tracker", WebviewUrl::App("index.html".into()))
-        .title(if cfg!(debug_assertions) { "Desk Pet (Dev)" } else { "Desk Pet" })
-        .inner_size(480.0, 600.0)
-        .min_inner_size(400.0, 460.0)
-        .initialization_script(format!("window.__INITIAL_TAB__ = {tab_json};"))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let route_json = serde_json::to_string(route).map_err(|e| e.to_string())?;
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+        .initialization_script(format!("window.__ROUTE__ = {route_json};"));
+    let win = configure(builder).build().map_err(|e| e.to_string())?;
     win.set_focus().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_tracker(app: AppHandle, tab: String) -> Result<(), String> {
+    open_window(&app, "tracker", &tab, |b| {
+        b.title(if cfg!(debug_assertions) { "Desk Pet (Dev)" } else { "Desk Pet" })
+            .inner_size(480.0, 640.0)
+            .min_inner_size(450.0, 460.0)
+    })
+}
+
+#[tauri::command]
+fn open_onboarding(app: AppHandle, step: String) -> Result<(), String> {
+    open_window(&app, "onboarding", &step, |b| {
+        b.title("Welcome to Desk Pet")
+            .inner_size(440.0, 580.0)
+            .resizable(false)
+            .center()
+    })
+}
+
+fn onboarded(app: &AppHandle) -> bool {
+    store_bool(app, "onboarded", false)
+}
+
+#[tauri::command]
+fn finish_onboarding(app: AppHandle) -> Result<(), String> {
+    store_set(&app, "onboarded", true.into());
+    set_pet_visible(app.clone(), true)?;
+    if let Some(win) = app.get_webview_window("onboarding") {
+        let _ = win.close();
+    }
+    Ok(())
+}
+
+/// Forget everything (Keychain items, settings, cached activity) and start
+/// setup again, exactly as a brand-new install would.
+#[tauri::command]
+fn reset_app(app: AppHandle) -> Result<(), String> {
+    secrets::delete_all(&app)?;
+    if let Ok(store) = app.store(STORE) {
+        store.clear();
+        store.save().map_err(|e| e.to_string())?;
+    }
+    let _ = app.autolaunch().disable();
+    set_pet_scale(app.clone(), DEFAULT_SCALE)?;
+    set_always_on_top(app.clone(), true)?;
+    pet_window(&app)?.hide().map_err(|e| e.to_string())?;
+    if let Some(win) = app.get_webview_window("tracker") {
+        let _ = win.close();
+    }
+    let _ = app.emit("data-changed", ());
+    settings_changed(&app);
+    open_onboarding(app, "welcome".into())
+}
+
+/// The first line of the tray menu, e.g. "Synced 3 min ago".
+#[tauri::command]
+fn set_tray_status(app: AppHandle, text: String) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.status.set_text(text);
+    }
 }
 
 /// Right-click menu on the pet itself.
@@ -230,7 +299,7 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
             set_pet_visible(app.clone(), !visible)
         }
         "hide_pet" => set_pet_visible(app.clone(), false),
-        "open_tracker" => open_tracker(app.clone(), "activity".into()),
+        "open_tracker" | "status" => open_tracker(app.clone(), "activity".into()),
         "settings" => open_tracker(app.clone(), "settings".into()),
         "dev_panel" => open_tracker(app.clone(), "dev".into()),
         "sync_now" => app.emit("sync-now", ()).map_err(|e| e.to_string()),
@@ -250,6 +319,7 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
 }
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
+    let status = MenuItem::with_id(app, "status", "Not synced yet", true, None::<&str>)?;
     let toggle_pet = MenuItem::with_id(app, "toggle_pet", "Hide Pet", true, None::<&str>)?;
     let autostart = CheckMenuItem::with_id(
         app,
@@ -267,7 +337,16 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
     let menu = Menu::with_items(
         app,
-        &[&toggle_pet, &open_tracker, &sync_now, &sep()?, &settings, &autostart],
+        &[
+            &status,
+            &sep()?,
+            &toggle_pet,
+            &open_tracker,
+            &sync_now,
+            &sep()?,
+            &settings,
+            &autostart,
+        ],
     )?;
     if cfg!(debug_assertions) {
         menu.append(&MenuItem::with_id(app, "dev_panel", "Dev Panel", true, None::<&str>)?)?;
@@ -281,7 +360,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .build(app)?;
 
-    app.manage(TrayItems { toggle_pet, autostart });
+    app.manage(TrayItems { status, toggle_pet, autostart });
     Ok(())
 }
 
@@ -309,10 +388,15 @@ fn place_pet_first_time(app: &AppHandle, pet: &WebviewWindow) -> tauri::Result<(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = open_tracker(app.clone(), "activity".into());
+            let _ = if onboarded(app) {
+                open_tracker(app.clone(), "activity".into())
+            } else {
+                open_onboarding(app.clone(), "welcome".into())
+            };
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(
             tauri_plugin_window_state::Builder::default()
@@ -328,9 +412,16 @@ pub fn run() {
             set_pet_scale,
             set_autostart,
             open_tracker,
+            open_onboarding,
+            finish_onboarding,
+            reset_app,
+            set_tray_status,
             show_pet_menu,
             set_hit_mask,
             quit_app,
+            secrets::secret_get,
+            secrets::secret_set,
+            secrets::secret_delete,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -338,26 +429,20 @@ pub fn run() {
 
             let handle = app.handle();
 
-            // Open at login defaults to on for the installed app. Dev builds never
-            // register themselves, so a `tauri dev` binary can't end up in Login Items.
-            if !store_bool(handle, "autostartInitialized", false) {
-                if !cfg!(debug_assertions) {
-                    let _ = app.autolaunch().enable();
-                }
-                store_set(handle, "autostartInitialized", true.into());
-            }
-
             let pet = pet_window(handle).map_err(|e| e.to_string())?;
             let scale = pet_scale(handle);
             pet.set_size(LogicalSize::new(PET_W * scale, PET_H * scale))?;
             pet.set_always_on_top(store_bool(handle, "alwaysOnTop", true))?;
             place_pet_first_time(handle, &pet)?;
             let _ = pet.restore_state(StateFlags::POSITION);
-            if store_bool(handle, "petVisible", true) {
-                pet.show()?;
-            }
 
             build_tray(handle)?;
+            // First run (or after Reset): setup shows the pet when it's done.
+            if !onboarded(handle) {
+                open_onboarding(handle.clone(), "welcome".into())?;
+            } else if store_bool(handle, "petVisible", true) {
+                pet.show()?;
+            }
             spawn_click_through(handle.clone());
             settings_changed(handle);
             Ok(())

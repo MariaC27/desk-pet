@@ -1,16 +1,9 @@
-import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { useRoute } from "../lib/route";
 import type { TrackerTab } from "../lib/settings";
 import { ActivityTab } from "./ActivityTab";
 import { DevPanel } from "./DevPanel";
 import { MessagesTab } from "./MessagesTab";
 import { SettingsTab } from "./SettingsTab";
-
-declare global {
-  interface Window {
-    __INITIAL_TAB__?: TrackerTab;
-  }
-}
 
 const TABS: { id: TrackerTab; label: string }[] = [
   { id: "activity", label: "Activity" },
@@ -20,14 +13,7 @@ const TABS: { id: TrackerTab; label: string }[] = [
 ];
 
 export function TrackerWindow() {
-  const [tab, setTab] = useState<TrackerTab>(window.__INITIAL_TAB__ ?? "activity");
-
-  useEffect(() => {
-    const unlisten = listen<TrackerTab>("tracker:tab", (e) => setTab(e.payload));
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, []);
+  const [tab, setTab] = useRoute<TrackerTab>("activity");
 
   return (
     <div className="tracker">

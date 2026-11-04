@@ -24,6 +24,12 @@ export const setAlwaysOnTop = (enabled: boolean) => invoke("set_always_on_top", 
 export const setPetScale = (scale: number) => invoke("set_pet_scale", { scale });
 export const setAutostart = (enabled: boolean) => invoke("set_autostart", { enabled });
 export const openTracker = (tab: TrackerTab) => invoke("open_tracker", { tab });
+
+export type OnboardingStep = "welcome" | "github" | "prefs" | "done";
+/** "github" alone = reconnect flow: finishes right after connecting. */
+export const openOnboarding = (step: OnboardingStep) => invoke("open_onboarding", { step });
+export const finishOnboarding = () => invoke("finish_onboarding");
+export const resetApp = () => invoke("reset_app");
 export const showPetMenu = () => invoke("show_pet_menu");
 /** W*H string of 0/1: where the pet window should catch clicks (see sprite.hitMask). */
 export const setHitMask = (mask: string) => invoke("set_hit_mask", { mask });

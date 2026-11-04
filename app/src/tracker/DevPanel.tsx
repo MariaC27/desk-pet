@@ -1,23 +1,49 @@
 // Dev-only controls for previewing every state without waiting for real activity.
+// Any change here overrides the real GitHub data until "Use real data" is pressed.
 import { useEffect, useState } from "react";
+import { getDevOverride, notifyDataChanged, setDevOverride } from "../lib/data";
 import { STAGES, stageFor } from "../lib/growth";
-import { DEFAULT_PET_STATE, celebrate, loadPetState, publishPetState, type PetState } from "../lib/petState";
+import { DEFAULT_PET_STATE, celebrate, currentPetState, type PetState } from "../lib/petState";
+import { Toggle } from "../ui";
 
 export function DevPanel() {
   const [pet, setPet] = useState<PetState>(DEFAULT_PET_STATE);
+  const [overriding, setOverriding] = useState(false);
+
+  const load = async () => {
+    setOverriding(!!(await getDevOverride()));
+    setPet(await currentPetState());
+  };
 
   useEffect(() => {
-    loadPetState().then(setPet);
+    load();
   }, []);
 
-  const update = (patch: Partial<PetState>) => {
+  const update = async (patch: Partial<PetState>) => {
     const next = { ...pet, ...patch };
     setPet(next);
-    publishPetState(next);
+    setOverriding(true);
+    await setDevOverride(next);
+    await notifyDataChanged();
+  };
+
+  const useRealData = async () => {
+    await setDevOverride(null);
+    await notifyDataChanged();
+    await load();
   };
 
   return (
     <section className="stack">
+      <div className={overriding ? "banner" : "banner quiet"}>
+        <span>{overriding ? "Showing fake data on the pet." : "Showing real GitHub data."}</span>
+        {overriding && (
+          <button className="button" onClick={useRealData}>
+            Use real data
+          </button>
+        )}
+      </div>
+
       <div className="card stack">
         <h2>Contributions this week</h2>
         <div className="row">
@@ -48,36 +74,13 @@ export function DevPanel() {
 
       <div className="card stack">
         <h2>Mood & overlays</h2>
-        <div className="row">
-          <span>Resting (no recent activity)</span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="switch"
-            checked={pet.baseMood === "resting"}
-            onChange={(e) => update({ baseMood: e.target.checked ? "resting" : "idle" })}
-          />
-        </div>
-        <div className="row">
-          <span>Offline</span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="switch"
-            checked={pet.offline}
-            onChange={(e) => update({ offline: e.target.checked })}
-          />
-        </div>
-        <div className="row">
-          <span>Unread message</span>
-          <input
-            type="checkbox"
-            role="switch"
-            className="switch"
-            checked={pet.hasMessage}
-            onChange={(e) => update({ hasMessage: e.target.checked })}
-          />
-        </div>
+        <Toggle
+          label="Resting (no recent activity)"
+          checked={pet.baseMood === "resting"}
+          onChange={(v) => update({ baseMood: v ? "resting" : "idle" })}
+        />
+        <Toggle label="Offline" checked={pet.offline} onChange={(v) => update({ offline: v })} />
+        <Toggle label="Unread message" checked={pet.hasMessage} onChange={(v) => update({ hasMessage: v })} />
         <div className="row">
           <button className="button" onClick={() => celebrate()}>
             Celebrate

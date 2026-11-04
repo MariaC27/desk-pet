@@ -1,12 +1,16 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the pet and tracker windows",
-  "windows": ["pet", "tracker"],
+  "description": "Capability for the app's windows",
+  "windows": ["pet", "tracker", "onboarding"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
     "opener:default",
-    "store:default"
+    "store:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://github.com/login/*" }, { "url": "https://api.github.com/*" }]
+    }
   ]
 }

@@ -13,7 +13,7 @@ Target: gift-ready by **~Nov 15, 2026** (plan written Nov 2).
 | Desktop stack | **Tauri v2 + React + TypeScript + Vite**. |
 | Backend | **Supabase** (Postgres + Auth + Edge Functions). |
 | Activity metric | GitHub GraphQL `viewer.contributionsCollection.contributionCalendar` (daily contribution counts). Labelled **"contributions"** in the UI, not "commits". |
-| Growth cadence | **Weekly reset**: the plant goes back to a seed at the moment Sunday 11:59 PM turns into Monday 12:00 AM (local time) and grows through the week as contributions come in. The app checks GitHub regularly through the day (§3). |
+| Growth cadence | **Weekly reset**: the plant goes back to a seed at the moment Saturday 11:59 PM turns into Sunday 12:00 AM (local time), so plant weeks line up with the columns of GitHub's contribution graph, and grows through the week as contributions come in. The app checks GitHub regularly through the day (§3). |
 | GitHub auth | **OAuth App + Device Flow** (the user types a short code at github.com/login/device). No client secret ships in the app; any GitHub user can connect. |
 | Who uses it | It's built for one recipient, but nothing is hardcoded. Any user can connect their GitHub account and pair with any sender (§5). |
 | Launch at login | On by default. A checkbox during setup lets the user turn it off, and Settings has the same toggle. |
@@ -57,7 +57,7 @@ GitHub GraphQL <── token (keychain) ── macOS app ── device secret �
 
 ## 3. Growth model (weekly)
 
-**The plant grows over one week, then starts over.** A week runs **Monday 00:00 to Sunday 23:59 in the user's local time**. The start day is a constant, so it's easy to change. At the start of each week the plant is a seed again, and it grows through stages as that week's contributions add up. The app checks GitHub regularly during the day (§6), so a new contribution shows up on the pet within minutes.
+**The plant grows over one week, then starts over.** A week runs **Sunday 00:00 to Saturday 23:59 in the user's local time**, the same weeks as GitHub's contribution graph. The start day is a constant, so it's easy to change. At the start of each week the plant is a seed again, and it grows through stages as that week's contributions add up. The app checks GitHub regularly during the day (§6), so a new contribution shows up on the pet within minutes.
 
 **Stage = contributions so far this week:**
 
@@ -154,7 +154,7 @@ The same flow works for anyone. Testing it with your own account is identical to
 
 ## 6. Sync and error states
 
-- GitHub sync runs on launch, **every 10 minutes**, on wake, and when you press "Sync now" in the tray. That's about 144 requests a day, far below GitHub's limit of 5000 per hour. It also catches the Monday reset at local midnight without needing a network call.
+- GitHub sync runs on launch, **every 10 minutes**, on wake, and when you press "Sync now" in the tray. That's about 144 requests a day, far below GitHub's limit of 5000 per hour. It also catches the Sunday reset at local midnight without needing a network call.
 - The last successful calendar result is cached in the store, so the pet always renders from cached data even when offline.
 - What the user sees for each problem:
 
@@ -194,7 +194,7 @@ The schedule is tight, so each phase ends with something working.
 - [ ] `growth.ts` (with unit tests), wired to the pet.
 - [ ] Tracker tab 1, **Activity**:
   - this week's buds
-  - a 12-week mini calendar
+  - a 24-week mini calendar (Sun–Sat columns, like GitHub's graph)
   - stage and progress to the next stage
   - milestones reached
   - last synced time
@@ -228,5 +228,5 @@ Updater, then extra decorations past stage 7, then message styles, then pet size
 1. ~~Apple Developer account~~ **Decided: no.** The README will walk through "Open Anyway" with screenshots. Test the exact download → open flow on a clean user account early.
 2. **Auto-updates (P1):** the Tauri updater with GitHub Releases works even without Apple notarization (it uses its own signing key). Worth adding if Phase 4 has room, so you can ship fixes after the gift.
 3. **Private contributions:** check during Phase 2 whether a `read:user` token includes private-repo contributions in the calendar, or only if the user has turned on "include private contributions" on their profile. Explain the answer in the tracker's "what counts" note.
-4. **Day boundaries:** check whether GitHub's calendar groups days in the user's timezone or in UTC. If it's UTC, the Monday reset could include a few hours of Sunday-night contributions. Fix this by fetching with explicit `from`/`to` times based on local midnight.
+4. **Day boundaries:** check whether GitHub's calendar groups days in the user's timezone or in UTC. If it's UTC, the Sunday reset could include a few hours of Saturday-night contributions. Fix this by fetching with explicit `from`/`to` times based on local midnight.
 5. **Sender page hosting:** GitHub Pages (free, static) is the default.
