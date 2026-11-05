@@ -4,6 +4,7 @@ import { MAX_STAGE, stageFor } from "../lib/growth";
 import { onDataChanged } from "../lib/data";
 import { DEFAULT_PET_STATE, currentPetState, onCelebrate, type PetState } from "../lib/petState";
 import { openTracker, setHitMask, showPetMenu } from "../lib/settings";
+import { startMessageLoop } from "../lib/messages";
 import { startSyncLoop } from "../lib/sync";
 import { ENVELOPE_POS, H, W, composePet, hitMask, type Mood } from "./sprite";
 
@@ -60,6 +61,7 @@ export function PetWindow() {
   }, []);
 
   useEffect(() => startSyncLoop(), []);
+  useEffect(() => startMessageLoop(), []);
 
   // render loop
   useEffect(() => {

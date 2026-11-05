@@ -8,9 +8,14 @@
     "core:window:allow-start-dragging",
     "opener:default",
     "store:default",
+    "notification:default",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://github.com/login/*" }, { "url": "https://api.github.com/*" }]
+      "allow": [
+        { "url": "https://github.com/login/*" },
+        { "url": "https://api.github.com/*" },
+        { "url": "https://tuvacbefvbhvnuyeoogu.supabase.co/functions/v1/*" }
+      ]
     }
   ]
 }

@@ -1,7 +1,14 @@
 // What the pet renders from, derived from the cached GitHub calendar. In dev
 // builds the dev panel can override it to preview any state.
 import { emit, listen } from "@tauri-apps/api/event";
-import { getCalendar, getDevOverride, getSyncStatus, type CalendarCache, type SyncStatus } from "./data";
+import {
+  getCalendar,
+  getDevOverride,
+  getMessages,
+  getSyncStatus,
+  type CalendarCache,
+  type SyncStatus,
+} from "./data";
 import { localDateKey, weekCount } from "./growth";
 
 export interface PetState {
@@ -18,9 +25,15 @@ export const DEFAULT_PET_STATE: PetState = {
   hasMessage: false,
 };
 
-export function derivePetState(cal: CalendarCache | null, status: SyncStatus, now = new Date()): PetState {
+export function derivePetState(
+  cal: CalendarCache | null,
+  status: SyncStatus,
+  now = new Date(),
+  unreadMessages = 0,
+): PetState {
   const offline = status.error === "offline";
-  if (!cal) return { ...DEFAULT_PET_STATE, offline };
+  const hasMessage = unreadMessages > 0;
+  if (!cal) return { ...DEFAULT_PET_STATE, offline, hasMessage };
 
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -31,14 +44,15 @@ export function derivePetState(cal: CalendarCache | null, status: SyncStatus, no
     count: weekCount(cal.days, now),
     baseMood: recent > 0 ? "idle" : "resting",
     offline,
-    hasMessage: false,
+    hasMessage,
   };
 }
 
 export async function currentPetState(now = new Date()): Promise<PetState> {
   const override = import.meta.env.DEV ? await getDevOverride<PetState>() : null;
   if (override) return override;
-  return derivePetState(await getCalendar(), await getSyncStatus(), now);
+  const unread = (await getMessages()).filter((m) => !m.readAt).length;
+  return derivePetState(await getCalendar(), await getSyncStatus(), now, unread);
 }
 
 export const celebrate = () => emit("pet:celebrate");

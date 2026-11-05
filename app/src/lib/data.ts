@@ -58,3 +58,36 @@ export const onSyncRequested = (cb: () => void) => listen("sync-now", cb);
 /** Dev panel override of the pet's state; null = use real data. */
 export const getDevOverride = <T>() => get<T>("devOverride");
 export const setDevOverride = (v: unknown) => set("devOverride", v);
+
+// ---- messages ------------------------------------------------------------------
+
+export interface Pairing {
+  recipientName: string | null;
+  pairedAt: string; // ISO
+  /** Set when the server no longer recognises this Mac (the sender removed it). */
+  error: "unpaired" | null;
+}
+
+export interface Message {
+  id: string;
+  body: string;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export const getPairing = () => get<Pairing>("pairing");
+export const setPairing = (p: Pairing | null) => set("pairing", p);
+
+/** Server's message list as of the last check (newest last). */
+export const getMessages = async () => (await get<Message[]>("messages")) ?? [];
+export const setMessages = (m: Message[]) => set("messages", m);
+
+/** Messages read locally whose "read" hasn't reached the server yet. */
+export const getPendingReads = async () => (await get<string[]>("pendingReads")) ?? [];
+export const setPendingReads = (ids: string[]) => set("pendingReads", ids);
+
+export const getNotifyMessages = async () => (await get<boolean>("notifyMessages")) ?? true;
+export const setNotifyMessages = (on: boolean) => set("notifyMessages", on);
+
+export const requestMessageCheck = () => emit("check-messages");
+export const onMessageCheckRequested = (cb: () => void) => listen("check-messages", cb);

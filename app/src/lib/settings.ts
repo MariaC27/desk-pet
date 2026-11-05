@@ -25,7 +25,7 @@ export const setPetScale = (scale: number) => invoke("set_pet_scale", { scale })
 export const setAutostart = (enabled: boolean) => invoke("set_autostart", { enabled });
 export const openTracker = (tab: TrackerTab) => invoke("open_tracker", { tab });
 
-export type OnboardingStep = "welcome" | "github" | "prefs" | "done";
+export type OnboardingStep = "welcome" | "github" | "pair" | "prefs" | "done";
 /** "github" alone = reconnect flow: finishes right after connecting. */
 export const openOnboarding = (step: OnboardingStep) => invoke("open_onboarding", { step });
 export const finishOnboarding = () => invoke("finish_onboarding");

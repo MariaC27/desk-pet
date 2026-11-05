@@ -1,6 +1,7 @@
 // For a paired device (header `x-device-secret`):
 //   GET                      -> { messages: [{ id, body, createdAt, readAt }] }  (marks them delivered)
 //   POST { read: [ids...] }  -> { ok: true }                                     (marks them read)
+//   DELETE                   -> { ok: true }                                     (unpairs this device)
 // 401 { error: "unpaired" } if the device secret is unknown (e.g. the sender removed it).
 import { admin, deviceFor, json } from "../_shared/util.ts";
 
@@ -56,6 +57,16 @@ Deno.serve(async (req) => {
         console.error("mark read failed", error);
         return json({ error: "server_error" }, 500);
       }
+    }
+    return json({ ok: true });
+  }
+
+  if (req.method === "DELETE") {
+    // The app unpairing itself (Settings → Unpair, or Reset).
+    const { error } = await admin.from("devices").delete().eq("id", device.id);
+    if (error) {
+      console.error("unpair failed", error);
+      return json({ error: "server_error" }, 500);
     }
     return json({ ok: true });
   }

@@ -3,10 +3,15 @@ import {
   EMPTY_STATUS,
   getAccount,
   getCalendar,
+  getMessages,
+  getNotifyMessages,
+  getPairing,
   getSyncStatus,
   onDataChanged,
   type Account,
   type CalendarCache,
+  type Message,
+  type Pairing,
   type SyncStatus,
 } from "../lib/data";
 import { DEFAULT_PET_STATE, currentPetState, type PetState } from "../lib/petState";
@@ -16,6 +21,10 @@ export interface AppData {
   calendar: CalendarCache | null;
   status: SyncStatus;
   pet: PetState;
+  pairing: Pairing | null;
+  /** Newest first. */
+  messages: Message[];
+  notifyMessages: boolean;
 }
 
 /** Everything the tracker shows, kept fresh via "data-changed" and a 1-minute tick. */
@@ -24,13 +33,24 @@ export function useAppData(): AppData | null {
 
   useEffect(() => {
     const refresh = async () => {
-      const [account, calendar, status, pet] = await Promise.all([
+      const [account, calendar, status, pet, pairing, messages, notifyMessages] = await Promise.all([
         getAccount(),
         getCalendar(),
         getSyncStatus(),
         currentPetState(),
+        getPairing(),
+        getMessages(),
+        getNotifyMessages(),
       ]);
-      setData({ account, calendar, status: status ?? EMPTY_STATUS, pet: pet ?? DEFAULT_PET_STATE });
+      setData({
+        account,
+        calendar,
+        status: status ?? EMPTY_STATUS,
+        pet: pet ?? DEFAULT_PET_STATE,
+        pairing,
+        messages: [...messages].reverse(),
+        notifyMessages,
+      });
     };
     refresh();
     const id = setInterval(refresh, 60_000);

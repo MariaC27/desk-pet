@@ -12,6 +12,7 @@ import {
   type OnboardingStep,
 } from "../lib/settings";
 import { syncOnce } from "../lib/sync";
+import { PairForm } from "../PairForm";
 import { PetPreview } from "../pet/PetPreview";
 import { SizePicker, Toggle } from "../ui";
 
@@ -24,8 +25,9 @@ export function Onboarding() {
     <div className="onboarding">
       {step === "welcome" && <Welcome onNext={() => setStep("github")} />}
       {step === "github" && (
-        <ConnectGitHub onNext={() => (reconnect ? finishOnboarding() : setStep("prefs"))} />
+        <ConnectGitHub onNext={() => (reconnect ? finishOnboarding() : setStep("pair"))} />
       )}
+      {step === "pair" && <PairMessages onNext={() => setStep("prefs")} />}
       {step === "prefs" && <Prefs onNext={() => setStep("done")} />}
       {step === "done" && <Done />}
     </div>
@@ -159,6 +161,42 @@ function ConnectGitHub({ onNext }: { onNext: () => void }) {
           </button>
         </>
       )}
+    </section>
+  );
+}
+
+function PairMessages({ onNext }: { onNext: () => void }) {
+  const [paired, setPaired] = useState<{ name: string | null } | null>(null);
+
+  if (paired) {
+    return (
+      <section className="step">
+        <PetPreview view={{ ...DEFAULT_PET_STATE, mood: "happy", hasMessage: true }} scale={4} />
+        <h1>Paired!</h1>
+        <p>
+          {paired.name ? `Notes for ${paired.name} ` : "Notes "}
+          will arrive by your plant. Look for the little envelope.
+        </p>
+        <button className="button primary" onClick={onNext}>
+          Continue
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="step">
+      <PetPreview view={{ ...DEFAULT_PET_STATE, mood: "idle", hasMessage: true }} scale={4} />
+      <h1>Got a pairing code?</h1>
+      <p>
+        Someone who cares about you can send little notes to your plant. If they gave you a code,
+        enter it here.
+      </p>
+      <PairForm onPaired={(name) => setPaired({ name })} />
+      <button className="link" onClick={onNext}>
+        Skip for now
+      </button>
+      <p className="muted small">You can pair later in Settings → Messages.</p>
     </section>
   );
 }

@@ -1,14 +1,20 @@
 // Dev-only controls for previewing every state without waiting for real activity.
 // Any change here overrides the real GitHub data until "Use real data" is pressed.
 import { useEffect, useState } from "react";
-import { getDevOverride, notifyDataChanged, setDevOverride } from "../lib/data";
+import { getDevOverride, notifyDataChanged, requestMessageCheck, requestSync, setDevOverride } from "../lib/data";
 import { STAGES, stageFor } from "../lib/growth";
 import { DEFAULT_PET_STATE, celebrate, currentPetState, type PetState } from "../lib/petState";
+import { unpair } from "../lib/messages";
+import { openTracker } from "../lib/settings";
 import { Toggle } from "../ui";
+import { useAppData } from "./useAppData";
 
 export function DevPanel() {
   const [pet, setPet] = useState<PetState>(DEFAULT_PET_STATE);
   const [overriding, setOverriding] = useState(false);
+  const data = useAppData();
+  const pairing = data?.pairing;
+  const unread = data?.messages.filter((m) => !m.readAt).length ?? 0;
 
   const load = async () => {
     setOverriding(!!(await getDevOverride()));
@@ -42,6 +48,34 @@ export function DevPanel() {
             Use real data
           </button>
         )}
+      </div>
+
+      <div className="card stack">
+        <h2>Messages</h2>
+        <p className="muted small">
+          {!pairing
+            ? "Not paired. On the sender page, add a \"Me (test)\" recipient, get a code, and enter it in Settings → Messages."
+            : pairing.error
+              ? "Unpaired by the server (removed on the sender page)."
+              : `Paired as ${pairing.recipientName ?? "?"} · ${data?.messages.length ?? 0} notes, ${unread} unread`}
+        </p>
+        <div className="row">
+          <button className="button" onClick={() => requestMessageCheck()}>
+            Check messages now
+          </button>
+          <button className="button" onClick={() => requestSync()}>
+            Sync GitHub now
+          </button>
+          {pairing ? (
+            <button className="button" onClick={() => unpair()}>
+              Unpair
+            </button>
+          ) : (
+            <button className="button" onClick={() => openTracker("settings")}>
+              Pair…
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="card stack">

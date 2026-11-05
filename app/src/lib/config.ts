@@ -10,3 +10,9 @@ export const GITHUB_SCOPE = "read:user";
 export const HISTORY_WEEKS = 24;
 
 export const SYNC_EVERY_MS = 10 * 60_000;
+
+/** Supabase project for messages (the publishable key is meant to be public). */
+export const SUPABASE_URL = "https://tuvacbefvbhvnuyeoogu.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_fxKVI6nIUKcUfPOtUeQaYw_gTrLXaV_";
+
+export const MESSAGES_EVERY_MS = 2 * 60_000;

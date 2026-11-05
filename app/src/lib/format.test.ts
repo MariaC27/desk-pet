@@ -51,6 +51,11 @@ describe("derivePetState", () => {
     expect(derivePetState(cal([["2026-11-02", 4]]), EMPTY_STATUS, now).baseMood).toBe("resting");
   });
 
+  it("shows the envelope while there are unread messages", () => {
+    expect(derivePetState(null, EMPTY_STATUS, now, 2).hasMessage).toBe(true);
+    expect(derivePetState(cal([["2026-11-05", 1]]), EMPTY_STATUS, now, 0).hasMessage).toBe(false);
+  });
+
   it("shows offline but keeps the last known plant", () => {
     const s = derivePetState(cal([["2026-11-05", 1]]), { ...EMPTY_STATUS, error: "offline" }, now);
     expect(s).toMatchObject({ count: 1, offline: true });
