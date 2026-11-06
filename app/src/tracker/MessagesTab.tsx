@@ -16,7 +16,9 @@ export function MessagesTab() {
   const data = useAppData();
 
   if (!data) return null;
-  const { pairing, messages } = data;
+  const { pairing } = data;
+  // Feeling-only messages just play on the plant; only notes with text are listed.
+  const messages = data.messages.filter((m) => m.body.trim());
 
   if (pairing?.error === "unpaired") {
     return (
@@ -55,8 +57,8 @@ export function MessagesTab() {
         <div className="card empty">
           <p>No notes yet.</p>
           <p className="muted">
-            When one arrives, your plant lets you know: an envelope for a note, or a little show for
-            a feeling. Click the plant to see it. Everything is kept here.
+            When one arrives, an envelope shows up by your plant. Click the plant to read it.
+            Notes are kept here.
           </p>
         </div>
       </section>

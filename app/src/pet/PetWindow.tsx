@@ -1,10 +1,10 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef } from "react";
 import { MAX_STAGE } from "../lib/growth";
-import { onDataChanged } from "../lib/data";
+import { getMessages, onDataChanged } from "../lib/data";
 import { DEFAULT_PET_STATE, currentPetState, onCelebrate, petView, type PetState } from "../lib/petState";
 import { openTracker, setHitMask, showPetMenu } from "../lib/settings";
-import { startMessageLoop } from "../lib/messages";
+import { markRead, startMessageLoop } from "../lib/messages";
 import { startSyncLoop } from "../lib/sync";
 import { H, W, composePet, hitMask, type Mood } from "./sprite";
 
@@ -123,13 +123,17 @@ export function PetWindow() {
     }
   };
 
-  // Click: skip a celebration, otherwise open any unread note/emotion (which
-  // marks it read, so the envelope and the emotion clear).
+  // Click: skip a celebration, otherwise clear any feeling-only messages (the
+  // click is how they're "seen") and open Messages if a note is waiting; the
+  // note is marked read once it's opened there.
   const onMouseUp = () => {
     if (!press.current) return;
     press.current = null;
     if (currentMood() === "celebrating") flash.current = null;
-    else if (hasUnread()) openTracker("messages");
+    else if (hasUnread()) {
+      getMessages().then((all) => markRead(all.filter((m) => !m.readAt && !m.body.trim()).map((m) => m.id)));
+      if (state.current.hasNote) openTracker("messages");
+    }
   };
 
   return (
