@@ -27,6 +27,7 @@ export interface Device {
 export interface Message {
   id: string
   body: string
+  mood: string | null
   created_at: string
   delivered_at: string | null
   read_at: string | null

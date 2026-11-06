@@ -2,7 +2,9 @@
 // event so every window can refresh when something updates.
 import { emit, listen } from "@tauri-apps/api/event";
 import { load } from "@tauri-apps/plugin-store";
+import type { Emotion } from "./emotions";
 import type { CalendarDay } from "./growth";
+import type { PlantStyle } from "../pet/sprite";
 
 export interface Account {
   login: string;
@@ -70,7 +72,8 @@ export interface Pairing {
 
 export interface Message {
   id: string;
-  body: string;
+  body: string; // may be empty when the message is just an emotion
+  mood: Emotion | null;
   createdAt: string;
   readAt: string | null;
 }
@@ -88,6 +91,9 @@ export const setPendingReads = (ids: string[]) => set("pendingReads", ids);
 
 export const getNotifyMessages = async () => (await get<boolean>("notifyMessages")) ?? true;
 export const setNotifyMessages = (on: boolean) => set("notifyMessages", on);
+
+export const getPlantStyle = async () => (await get<PlantStyle>("plantStyle")) ?? "blossom";
+export const setPlantStyle = (p: PlantStyle) => set("plantStyle", p);
 
 export const requestMessageCheck = () => emit("check-messages");
 export const onMessageCheckRequested = (cb: () => void) => listen("check-messages", cb);

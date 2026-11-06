@@ -48,7 +48,10 @@ for (let y = 0; y < TILE; y++) {
 const SCALE = 15;
 const ox = Math.round((SIZE - W * SCALE) / 2);
 const oy = Math.round((SIZE - H * SCALE) / 2) + 10;
-composePet({ count: 30, mood: "happy", offline: false, hasMessage: false }, { t: 0, blink: false }).forEach(
+composePet(
+  { plant: "blossom", stage: 7, extraBlooms: 0, ladybug: false, mood: "happy", emotion: null, offline: false, hasNote: false },
+  { t: 0, blink: false },
+).forEach(
   (color, i) => {
     if (color) icon.rect(ox + (i % W) * SCALE, oy + Math.floor(i / W) * SCALE, SCALE, SCALE, color);
   },

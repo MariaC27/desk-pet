@@ -5,6 +5,7 @@ import {
   setAccount,
   setCalendar,
   setNotifyMessages,
+  setPlantStyle,
   setSyncStatus,
 } from "../lib/data";
 import { syncStatusText } from "../lib/format";
@@ -23,7 +24,7 @@ import {
   type Settings,
 } from "../lib/settings";
 import { PairForm } from "../PairForm";
-import { SizePicker, Toggle } from "../ui";
+import { PlantPicker, SizePicker, Toggle } from "../ui";
 import { useAppData } from "./useAppData";
 
 async function disconnectGitHub() {
@@ -128,6 +129,7 @@ export function SettingsTab() {
 
       <div className="card stack">
         <h2>Pet</h2>
+        <PlantPicker value={data.pet.plant} onChange={(p) => run(setPlantStyle(p).then(notifyDataChanged))} />
         <Toggle label="Show pet on desktop" checked={s.petVisible} onChange={(v) => run(setPetVisible(v))} />
         <Toggle
           label="Keep above other windows"

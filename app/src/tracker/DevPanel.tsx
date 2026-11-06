@@ -1,49 +1,51 @@
 // Dev-only controls for previewing every state without waiting for real activity.
-// Any change here overrides the real GitHub data until "Use real data" is pressed.
+// Any change here overrides the real data on the pet until "Use real data" is pressed.
 import { useEffect, useState } from "react";
-import { getDevOverride, notifyDataChanged, requestMessageCheck, requestSync, setDevOverride } from "../lib/data";
-import { STAGES, stageFor } from "../lib/growth";
-import { DEFAULT_PET_STATE, celebrate, currentPetState, type PetState } from "../lib/petState";
+import {
+  getDevOverride,
+  notifyDataChanged,
+  requestMessageCheck,
+  requestSync,
+  setDevOverride,
+} from "../lib/data";
+import { EMOTIONS } from "../lib/emotions";
+import { STAGE_NAMES } from "../lib/growth";
 import { unpair } from "../lib/messages";
+import { celebrate, type DevOverride } from "../lib/petState";
 import { openTracker } from "../lib/settings";
 import { Toggle } from "../ui";
 import { useAppData } from "./useAppData";
 
 export function DevPanel() {
-  const [pet, setPet] = useState<PetState>(DEFAULT_PET_STATE);
-  const [overriding, setOverriding] = useState(false);
+  const [override, setOverride] = useState<DevOverride | null>(null);
   const data = useAppData();
-  const pairing = data?.pairing;
-  const unread = data?.messages.filter((m) => !m.readAt).length ?? 0;
-
-  const load = async () => {
-    setOverriding(!!(await getDevOverride()));
-    setPet(await currentPetState());
-  };
 
   useEffect(() => {
-    load();
+    getDevOverride<DevOverride>().then(setOverride);
   }, []);
 
-  const update = async (patch: Partial<PetState>) => {
-    const next = { ...pet, ...patch };
-    setPet(next);
-    setOverriding(true);
+  if (!data) return null;
+  const { pet, pairing, messages } = data;
+  const unread = messages.filter((m) => !m.readAt).length;
+
+  const update = async (patch: DevOverride) => {
+    const next = { ...override, ...patch };
+    setOverride(next);
     await setDevOverride(next);
     await notifyDataChanged();
   };
 
   const useRealData = async () => {
+    setOverride(null);
     await setDevOverride(null);
     await notifyDataChanged();
-    await load();
   };
 
   return (
     <section className="stack">
-      <div className={overriding ? "banner" : "banner quiet"}>
-        <span>{overriding ? "Showing fake data on the pet." : "Showing real GitHub data."}</span>
-        {overriding && (
+      <div className={override ? "banner" : "banner quiet"}>
+        <span>{override ? "Showing fake data on the pet." : "Showing real data."}</span>
+        {override && (
           <button className="button" onClick={useRealData}>
             Use real data
           </button>
@@ -54,10 +56,10 @@ export function DevPanel() {
         <h2>Messages</h2>
         <p className="muted small">
           {!pairing
-            ? "Not paired. On the sender page, add a \"Me (test)\" recipient, get a code, and enter it in Settings → Messages."
+            ? 'Not paired. On the sender page, add a "Me (test)" recipient, get a code, and enter it in Settings → Messages.'
             : pairing.error
               ? "Unpaired by the server (removed on the sender page)."
-              : `Paired as ${pairing.recipientName ?? "?"} · ${data?.messages.length ?? 0} notes, ${unread} unread`}
+              : `Paired as ${pairing.recipientName ?? "?"} · ${messages.length} messages, ${unread} unread`}
         </p>
         <div className="row">
           <button className="button" onClick={() => requestMessageCheck()}>
@@ -82,27 +84,42 @@ export function DevPanel() {
         <h2>Contributions this week</h2>
         <div className="row">
           <span className="big-number">
-            {pet.count} <span>· {STAGES[stageFor(pet.count)].name}</span>
+            {pet.count} <span>· {STAGE_NAMES[pet.stage]}</span>
           </span>
           <div className="segmented">
             <button onClick={() => update({ count: Math.max(0, pet.count - 1) })}>−1</button>
             <button onClick={() => update({ count: pet.count + 1 })}>+1</button>
-            <button onClick={() => update({ count: pet.count + 5 })}>+5</button>
+            <button onClick={() => update({ count: pet.count + pet.scale.bloomEvery })}>+{pet.scale.bloomEvery}</button>
           </div>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={55}
-          value={pet.count}
-          onChange={(e) => update({ count: Number(e.target.value) })}
-        />
+        <p className="muted small">
+          Stages start at {pet.scale.thresholds.join(" · ")}
+          {pet.scale.personalized ? " (from your history)" : " (default)"}
+        </p>
         <div className="chips">
-          {STAGES.map((s) => (
-            <button key={s.name} className="chip" onClick={() => update({ count: s.min })}>
-              {s.name}
+          {STAGE_NAMES.map((name, i) => (
+            <button key={name} className="chip" onClick={() => update({ count: pet.scale.thresholds[i] })}>
+              {name}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="card stack">
+        <h2>Emotion</h2>
+        <div className="chips">
+          {EMOTIONS.map((e) => (
+            <button
+              key={e.id}
+              className={pet.emotion === e.id ? "chip active" : "chip"}
+              onClick={() => update({ emotion: e.id, emotionKey: `dev-${Date.now()}` })}
+            >
+              {e.emoji} {e.label}
+            </button>
+          ))}
+          <button className="chip" onClick={() => update({ emotion: null, emotionKey: null })}>
+            None
+          </button>
         </div>
       </div>
 
@@ -114,7 +131,7 @@ export function DevPanel() {
           onChange={(v) => update({ baseMood: v ? "resting" : "idle" })}
         />
         <Toggle label="Offline" checked={pet.offline} onChange={(v) => update({ offline: v })} />
-        <Toggle label="Unread message" checked={pet.hasMessage} onChange={(v) => update({ hasMessage: v })} />
+        <Toggle label="Unread note (envelope)" checked={pet.hasNote} onChange={(v) => update({ hasNote: v })} />
         <div className="row">
           <button className="button" onClick={() => celebrate()}>
             Celebrate

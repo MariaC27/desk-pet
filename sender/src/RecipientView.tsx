@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { EMOTIONS, emotionInfo, type Emotion } from './emotions'
 import { MAX_MESSAGE_LENGTH, supabase, type Device, type Message, type Recipient } from './supabase'
 
 const REFRESH_MS = 20_000
@@ -14,7 +15,7 @@ export function RecipientView({ recipient, onRemoved }: { recipient: Recipient; 
     const [m, d] = await Promise.all([
       supabase
         .from('messages')
-        .select('id, body, created_at, delivered_at, read_at')
+        .select('id, body, mood, created_at, delivered_at, read_at')
         .eq('recipient_id', recipient.id)
         .order('created_at', { ascending: false }),
       supabase
@@ -46,15 +47,19 @@ export function RecipientView({ recipient, onRemoved }: { recipient: Recipient; 
 
 function Compose({ recipient, paired, onSent }: { recipient: Recipient; paired: boolean; onSent: () => void }) {
   const [body, setBody] = useState('')
+  const [mood, setMood] = useState<Emotion | null>(null)
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const remaining = MAX_MESSAGE_LENGTH - body.length
+  const canSend = (body.trim() || mood) && state !== 'sending'
+  const picked = emotionInfo(mood)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setState('sending')
-    const { error } = await supabase.from('messages').insert({ recipient_id: recipient.id, body: body.trim() })
+    const { error } = await supabase.from('messages').insert({ recipient_id: recipient.id, body: body.trim(), mood })
     if (error) return setState('error')
     setBody('')
+    setMood(null)
     setState('sent')
     onSent()
   }
@@ -63,10 +68,27 @@ function Compose({ recipient, paired, onSent }: { recipient: Recipient; paired: 
     <section className="card">
       <h2>Write to {recipient.display_name}</h2>
       <form className="stack" onSubmit={submit}>
+        <div className="emotions" role="group" aria-label="Add a feeling">
+          {EMOTIONS.map((em) => (
+            <button
+              key={em.id}
+              type="button"
+              className={mood === em.id ? 'emotion active' : 'emotion'}
+              aria-pressed={mood === em.id}
+              onClick={() => {
+                setMood(mood === em.id ? null : em.id)
+                if (state !== 'sending') setState('idle')
+              }}
+            >
+              <span className="emoji">{em.emoji}</span>
+              {em.label}
+            </button>
+          ))}
+        </div>
         <textarea
           rows={4}
           maxLength={MAX_MESSAGE_LENGTH}
-          placeholder="Something nice…"
+          placeholder={mood ? 'Add a note too (optional)…' : 'Something nice… or just pick a feeling above'}
           value={body}
           onChange={(e) => {
             setBody(e.target.value)
@@ -75,8 +97,8 @@ function Compose({ recipient, paired, onSent }: { recipient: Recipient; paired: 
         />
         <div className="row">
           <span className={remaining < 40 ? 'small warn' : 'small muted'}>{remaining} left</span>
-          <button className="button primary" disabled={!body.trim() || state === 'sending'}>
-            {state === 'sending' ? 'Sending…' : 'Send'}
+          <button className="button primary" disabled={!canSend}>
+            {state === 'sending' ? 'Sending…' : picked && !body.trim() ? `Send ${picked.emoji}` : 'Send'}
           </button>
         </div>
         {state === 'sent' && (
@@ -118,7 +140,14 @@ function History({ messages, onChange }: { messages: Message[]; onChange: () => 
       <ul className="messages">
         {messages.map((m) => (
           <li key={m.id}>
-            <p className="body">{m.body}</p>
+            <div className="message-line">
+              {m.mood && (
+                <span className="feeling-tag">
+                  <span aria-hidden>{emotionInfo(m.mood)?.emoji}</span> {emotionInfo(m.mood)?.label}
+                </span>
+              )}
+              {m.body && <p className="body">{m.body}</p>}
+            </div>
             <div className="row small muted">
               <span>
                 {fmt(m.created_at)} · <Status m={m} />

@@ -16,6 +16,7 @@ import {
   setPendingReads,
   type Message,
 } from "./data";
+import { emotionInfo } from "./emotions";
 import { startPolling, type PollResult } from "./poller";
 import { deleteSecret, getSecret, setSecret } from "./secrets";
 
@@ -82,13 +83,19 @@ async function requestNotificationPermission() {
   if (!(await isPermissionGranted())) await requestPermission();
 }
 
-async function notifyNew(count: number) {
+async function notifyNew(fresh: Message[]) {
   if (!(await getNotifyMessages())) return;
   if (!(await isPermissionGranted())) return;
-  sendNotification({
-    title: count === 1 ? "A little note arrived 💌" : `${count} little notes arrived 💌`,
-    body: "Click the envelope by your plant to read it.",
-  });
+  const [only] = fresh;
+  const feeling = fresh.length === 1 && !only.body.trim() ? emotionInfo(only.mood) : null;
+  sendNotification(
+    feeling
+      ? { title: feeling.notify, body: "Click your plant to see." }
+      : {
+          title: fresh.length === 1 ? "A little note arrived 💌" : `${fresh.length} little notes arrived 💌`,
+          body: "Click your plant to read it.",
+        },
+  );
 }
 
 async function flushPendingReads(secret: string) {
@@ -118,7 +125,7 @@ export async function checkMessagesOnce(): Promise<PollResult> {
     const pairing = await getPairing();
     if (pairing?.error) await setPairing({ ...pairing, error: null });
     await notifyDataChanged();
-    if (fresh.length) notifyNew(fresh.length);
+    if (fresh.length) notifyNew(fresh);
     return "ok";
   } catch (e) {
     if (e instanceof MessagesError && e.kind === "unpaired") {

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { HISTORY_WEEKS } from "../lib/config";
 import { onDataChanged, requestSync, type SyncStatus } from "../lib/data";
 import { syncStatusText } from "../lib/format";
-import { STAGES, localDateKey, stageFor, startOfWeek, toNextStage, type CalendarDay } from "../lib/growth";
-import type { PetState } from "../lib/petState";
+import { MAX_STAGE, STAGE_NAMES, dayLevels, localDateKey, startOfWeek, toNextStage, type CalendarDay } from "../lib/growth";
+import { petView, type PetState } from "../lib/petState";
 import { openOnboarding } from "../lib/settings";
 import { PetPreview } from "../pet/PetPreview";
 import { useAppData } from "./useAppData";
@@ -17,13 +17,7 @@ function addDays(d: Date, n: number) {
   return r;
 }
 
-function level(count: number) {
-  if (count === 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
-}
+type Level = (count: number) => number;
 
 export function ActivityTab() {
   const data = useAppData();
@@ -31,15 +25,17 @@ export function ActivityTab() {
   const { calendar, status, pet } = data;
   const now = new Date();
   const counts = new Map((calendar?.days ?? []).map((d: CalendarDay) => [d.date, d.count]));
+  // shades relative to their own busy days, like GitHub's graph
+  const level = dayLevels(calendar?.days ?? []);
 
   return (
     <section className="stack">
       <StatusBanner status={status} />
-      <ThisWeek count={pet.count} pet={pet} now={now} />
+      <ThisWeek pet={pet} now={now} />
       {calendar && (
         <div className="card graphs">
-          <WeekDays counts={counts} now={now} />
-          <History counts={counts} now={now} />
+          <WeekDays counts={counts} level={level} now={now} />
+          <History counts={counts} level={level} now={now} />
         </div>
       )}
       <Footer status={status} restrictedCount={calendar?.restrictedCount ?? 0} />
@@ -81,22 +77,23 @@ function StatusBanner({ status }: { status: SyncStatus }) {
   }
 }
 
-function ThisWeek({ count, pet, now }: { count: number; pet: PetState; now: Date }) {
+function ThisWeek({ pet, now }: { pet: PetState; now: Date }) {
+  const { count, stage, scale } = pet;
   const start = startOfWeek(now);
-  const stage = stageFor(count);
-  const remaining = toNextStage(count);
-  const from = STAGES[stage].min;
-  const to = STAGES[stage + 1]?.min ?? from;
+  const remaining = toNextStage(count, scale);
+  const from = scale.thresholds[stage];
+  const to = scale.thresholds[stage + 1] ?? from;
   const progress = remaining === null ? 1 : (count - from) / (to - from);
+  const bloomAt = scale.thresholds[MAX_STAGE];
 
   return (
     <div className="card hero">
-      <PetPreview view={{ ...pet, mood: pet.baseMood }} scale={3} />
+      <PetPreview view={petView(pet)} scale={3} />
       <div className="stack tight">
         <p className="eyebrow">
           This week · {shortDate.format(start)} – {shortDate.format(addDays(start, 6))}
         </p>
-        <h1>{STAGES[stage].name}</h1>
+        <h1>{STAGE_NAMES[stage]}</h1>
         <p className="big-number">
           {count} <span>contribution{count === 1 ? "" : "s"}</span>
         </p>
@@ -106,14 +103,18 @@ function ThisWeek({ count, pet, now }: { count: number; pet: PetState; now: Date
         <p className="muted">
           {remaining === null
             ? "Full bloom! Anything more adds extra flowers."
-            : `${remaining} more to become a ${STAGES[stage + 1].name.toLowerCase()}.`}
+            : `${remaining} more to become a ${STAGE_NAMES[stage + 1].toLowerCase()}.`}
+        </p>
+        <p className="muted small">
+          Full bloom at {bloomAt} this week
+          {scale.personalized ? `, based on your last ${HISTORY_WEEKS} weeks.` : ". This adjusts to you after a few weeks of history."}
         </p>
       </div>
     </div>
   );
 }
 
-function WeekDays({ counts, now }: { counts: Map<string, number>; now: Date }) {
+function WeekDays({ counts, level, now }: { counts: Map<string, number>; level: Level; now: Date }) {
   const start = startOfWeek(now);
   const today = localDateKey(now);
   return (
@@ -137,7 +138,7 @@ function WeekDays({ counts, now }: { counts: Map<string, number>; now: Date }) {
   );
 }
 
-function History({ counts, now }: { counts: Map<string, number>; now: Date }) {
+function History({ counts, level, now }: { counts: Map<string, number>; level: Level; now: Date }) {
   const first = addDays(startOfWeek(now), -7 * (HISTORY_WEEKS - 1));
   const today = localDateKey(now);
   const weeks = Array.from({ length: HISTORY_WEEKS }, (_, w) =>

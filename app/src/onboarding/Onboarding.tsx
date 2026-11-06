@@ -1,8 +1,8 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
-import { getAccount, type Account } from "../lib/data";
+import { getAccount, setPlantStyle, type Account } from "../lib/data";
 import { GitHubError, startDeviceFlow, waitForToken, type DeviceCode } from "../lib/github";
-import { currentPetState, DEFAULT_PET_STATE, type PetState } from "../lib/petState";
+import { currentPetState, DEFAULT_PET_STATE, petView, type PetState } from "../lib/petState";
 import { useRoute } from "../lib/route";
 import { setSecret } from "../lib/secrets";
 import {
@@ -14,7 +14,8 @@ import {
 import { syncOnce } from "../lib/sync";
 import { PairForm } from "../PairForm";
 import { PetPreview } from "../pet/PetPreview";
-import { SizePicker, Toggle } from "../ui";
+import type { PlantStyle } from "../pet/sprite";
+import { PlantPicker, SizePicker, Toggle } from "../ui";
 
 export function Onboarding() {
   const [step, setStep] = useRoute<OnboardingStep>("welcome");
@@ -37,7 +38,7 @@ export function Onboarding() {
 function Welcome({ onNext }: { onNext: () => void }) {
   return (
     <section className="step">
-      <PetPreview view={{ ...DEFAULT_PET_STATE, mood: "happy" }} scale={4} />
+      <PetPreview view={petView(DEFAULT_PET_STATE, "happy")} scale={4} />
       <h1>Hi! I'm your desk plant.</h1>
       <p>
         I grow as you make contributions on GitHub. Every Sunday I start over as a fresh seed, and
@@ -171,7 +172,7 @@ function PairMessages({ onNext }: { onNext: () => void }) {
   if (paired) {
     return (
       <section className="step">
-        <PetPreview view={{ ...DEFAULT_PET_STATE, mood: "happy", hasMessage: true }} scale={4} />
+        <PetPreview view={{ ...petView(DEFAULT_PET_STATE, "happy"), hasNote: true }} scale={4} />
         <h1>Paired!</h1>
         <p>
           {paired.name ? `Notes for ${paired.name} ` : "Notes "}
@@ -186,7 +187,7 @@ function PairMessages({ onNext }: { onNext: () => void }) {
 
   return (
     <section className="step">
-      <PetPreview view={{ ...DEFAULT_PET_STATE, mood: "idle", hasMessage: true }} scale={4} />
+      <PetPreview view={{ ...petView(DEFAULT_PET_STATE, "idle"), hasNote: true }} scale={4} />
       <h1>Got a pairing code?</h1>
       <p>
         Someone who cares about you can send little notes to your plant. If they gave you a code,
@@ -204,17 +205,20 @@ function PairMessages({ onNext }: { onNext: () => void }) {
 function Prefs({ onNext }: { onNext: () => void }) {
   const [openAtLogin, setOpenAtLogin] = useState(true);
   const [scale, setScale] = useState(4);
+  const [plant, setPlant] = useState<PlantStyle>("blossom");
 
   const save = async () => {
     // Dev builds never register themselves as a login item.
     if (!import.meta.env.DEV) await setAutostart(openAtLogin).catch(() => {});
     await setPetScale(scale).catch(() => {});
+    await setPlantStyle(plant);
     onNext();
   };
 
   return (
     <section className="step">
-      <h1>A couple of settings</h1>
+      <h1>Pick your plant</h1>
+      <PlantPicker value={plant} onChange={setPlant} />
       <div className="card stack wide">
         <Toggle
           label="Open at login"
@@ -244,7 +248,7 @@ function Done() {
 
   return (
     <section className="step">
-      <PetPreview view={{ ...pet, mood: "happy" }} scale={4} />
+      <PetPreview view={petView(pet, "happy")} scale={4} />
       <h1>Your plant is ready!</h1>
       <p>
         It lives in the corner of your screen. Drag it anywhere you like, or double-click it to see

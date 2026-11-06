@@ -51,9 +51,24 @@ describe("derivePetState", () => {
     expect(derivePetState(cal([["2026-11-02", 4]]), EMPTY_STATUS, now).baseMood).toBe("resting");
   });
 
-  it("shows the envelope while there are unread messages", () => {
-    expect(derivePetState(null, EMPTY_STATUS, now, 2).hasMessage).toBe(true);
-    expect(derivePetState(cal([["2026-11-05", 1]]), EMPTY_STATUS, now, 0).hasMessage).toBe(false);
+  const msg = (id: string, body: string, mood: "love" | "angry" | null, readAt: string | null = null) => ({
+    id,
+    body,
+    mood,
+    createdAt: now.toISOString(),
+    readAt,
+  });
+
+  it("shows the envelope only for unread messages with text", () => {
+    expect(derivePetState(null, EMPTY_STATUS, now, [msg("1", "hi", null)]).hasNote).toBe(true);
+    expect(derivePetState(null, EMPTY_STATUS, now, [msg("1", "", "love")]).hasNote).toBe(false);
+    expect(derivePetState(null, EMPTY_STATUS, now, [msg("1", "hi", null, "read")]).hasNote).toBe(false);
+  });
+
+  it("acts out the newest unread emotion", () => {
+    const s = derivePetState(null, EMPTY_STATUS, now, [msg("1", "", "love"), msg("2", "ok", "angry"), msg("3", "x", null)]);
+    expect(s).toMatchObject({ emotion: "angry", emotionKey: "2", hasNote: true });
+    expect(derivePetState(null, EMPTY_STATUS, now, [msg("1", "", "love", "read")]).emotion).toBeNull();
   });
 
   it("shows offline but keeps the last known plant", () => {

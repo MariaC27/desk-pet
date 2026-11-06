@@ -289,3 +289,57 @@ textarea {
   letter-spacing: 0.06em;
   user-select: all;
 }
+
+.emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emotion {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px 4px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emotion .emoji {
+  font-size: 16px;
+}
+
+.emotion.active {
+  border-color: var(--green);
+  background: var(--green-soft);
+  font-weight: 600;
+}
+
+.message-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.message-line .body {
+  flex: 1;
+  min-width: 0;
+}
+
+.feeling-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 1px solid var(--terracotta);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--terracotta) 12%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+}

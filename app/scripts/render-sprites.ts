@@ -1,30 +1,40 @@
-// Renders a contact sheet of every stage and mood so the art can be reviewed
-// without running the app.  Usage: npm run sprites [-- out.png]
+// Renders a contact sheet of every plant style, stage, mood and emotion so the
+// art can be reviewed without running the app.  Usage: npm run sprites [-- out.png]
 import { writeFileSync } from "node:fs";
-import { STAGES } from "../src/lib/growth";
-import { H, W, composePet, type Mood, type PetView } from "../src/pet/sprite";
+import { EMOTIONS } from "../src/lib/emotions";
+import { MAX_STAGE } from "../src/lib/growth";
+import { H, PLANT_STYLES, W, composePet, type Mood, type PetView } from "../src/pet/sprite";
 import { Raster } from "./png";
 
 const SCALE = 4;
 const GAP = 8;
 const out = process.argv[2] ?? "sprites.png";
 
+const base: PetView = {
+  plant: "blossom",
+  stage: 4,
+  extraBlooms: 0,
+  ladybug: false,
+  mood: "idle",
+  emotion: null,
+  offline: false,
+  hasNote: false,
+};
+
 const rows: PetView[][] = [
-  // every stage, idle
-  STAGES.map((s) => ({ count: s.min, mood: "idle", offline: false, hasMessage: false })),
-  // moods + overlays on a mid-size plant, plus extra blooms
+  // every style at every stage, then past full bloom
+  ...PLANT_STYLES.map(({ id }) => [
+    ...Array.from({ length: MAX_STAGE + 1 }, (_, stage) => ({ ...base, plant: id, stage })),
+    { ...base, plant: id, stage: MAX_STAGE, extraBlooms: 4, ladybug: true },
+  ]),
+  // the pet's own moods + overlays
   [
-    ...(["idle", "happy", "resting", "celebrating"] as Mood[]).map((mood) => ({
-      count: 10,
-      mood,
-      offline: false,
-      hasMessage: false,
-    })),
-    { count: 10, mood: "idle", offline: true, hasMessage: false },
-    { count: 10, mood: "idle", offline: false, hasMessage: true },
-    { count: 40, mood: "idle", offline: false, hasMessage: false },
-    { count: 50, mood: "happy", offline: false, hasMessage: true },
+    ...(["idle", "happy", "resting", "celebrating"] as Mood[]).map((mood) => ({ ...base, mood })),
+    { ...base, offline: true },
+    { ...base, hasNote: true },
   ],
+  // emotions someone can send
+  EMOTIONS.map((e) => ({ ...base, emotion: e.id })),
 ];
 
 const cols = Math.max(...rows.map((r) => r.length));
@@ -36,7 +46,8 @@ rows.forEach((row, ry) =>
     const ox = GAP + cx * cell(W);
     const oy = GAP + ry * cell(H);
     sheet.rect(ox, oy, W * SCALE, H * SCALE, "#fbf6ee");
-    composePet(view, { t: 0, blink: false }).forEach((color, i) => {
+    // t chosen so animated effects are mid-motion; emotionAge 0 = arrival animation
+    composePet(view, { t: 1000, blink: false, emotionAge: 0 }).forEach((color, i) => {
       if (color) sheet.rect(ox + (i % W) * SCALE, oy + Math.floor(i / W) * SCALE, SCALE, SCALE, color);
     });
   }),

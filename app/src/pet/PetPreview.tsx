@@ -14,7 +14,7 @@ export function PetPreview({ view, scale = 3 }: { view: PetView; scale?: number 
       ctx.fillStyle = color;
       ctx.fillRect(i % W, Math.floor(i / W), 1, 1);
     });
-  }, [view.count, view.mood, view.offline, view.hasMessage]);
+  }, [JSON.stringify(view)]);
 
   return (
     <canvas

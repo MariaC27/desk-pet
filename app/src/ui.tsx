@@ -1,5 +1,9 @@
 // Small shared UI pieces for the tracker and onboarding windows.
+import { MAX_STAGE } from "./lib/growth";
+import { DEFAULT_PET_STATE, petView } from "./lib/petState";
 import { PET_SIZES } from "./lib/settings";
+import { PetPreview } from "./pet/PetPreview";
+import { PLANT_STYLES, type PlantStyle } from "./pet/sprite";
 
 export function Toggle({
   label,
@@ -44,6 +48,26 @@ export function SizePicker({ value, onChange }: { value: number; onChange: (scal
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Choose the plant style, each shown in full bloom. */
+export function PlantPicker({ value, onChange }: { value: PlantStyle; onChange: (p: PlantStyle) => void }) {
+  return (
+    <div className="plant-picker" role="radiogroup" aria-label="Plant">
+      {PLANT_STYLES.map((p) => (
+        <button
+          key={p.id}
+          role="radio"
+          aria-checked={value === p.id}
+          className={value === p.id ? "plant-option active" : "plant-option"}
+          onClick={() => onChange(p.id)}
+        >
+          <PetPreview view={{ ...petView(DEFAULT_PET_STATE, "happy"), plant: p.id, stage: MAX_STAGE }} scale={2} />
+          <span>{p.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

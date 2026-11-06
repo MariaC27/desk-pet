@@ -1,5 +1,5 @@
 // For a paired device (header `x-device-secret`):
-//   GET                      -> { messages: [{ id, body, createdAt, readAt }] }  (marks them delivered)
+//   GET                      -> { messages: [{ id, body, mood, createdAt, readAt }] }  (marks them delivered)
 //   POST { read: [ids...] }  -> { ok: true }                                     (marks them read)
 //   DELETE                   -> { ok: true }                                     (unpairs this device)
 // 401 { error: "unpaired" } if the device secret is unknown (e.g. the sender removed it).
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method === "GET") {
     const { data, error } = await admin
       .from("messages")
-      .select("id, body, created_at, delivered_at, read_at")
+      .select("id, body, mood, created_at, delivered_at, read_at")
       .eq("recipient_id", device.recipient_id)
       .order("created_at", { ascending: true })
       .limit(MAX_MESSAGES);
@@ -39,7 +39,13 @@ Deno.serve(async (req) => {
     await admin.from("devices").update({ last_seen_at: now }).eq("id", device.id);
 
     return json({
-      messages: data.map((m) => ({ id: m.id, body: m.body, createdAt: m.created_at, readAt: m.read_at })),
+      messages: data.map((m) => ({
+        id: m.id,
+        body: m.body,
+        mood: m.mood,
+        createdAt: m.created_at,
+        readAt: m.read_at,
+      })),
     });
   }
 

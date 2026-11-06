@@ -1,12 +1,12 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef } from "react";
-import { MAX_STAGE, stageFor } from "../lib/growth";
+import { MAX_STAGE } from "../lib/growth";
 import { onDataChanged } from "../lib/data";
-import { DEFAULT_PET_STATE, currentPetState, onCelebrate, type PetState } from "../lib/petState";
+import { DEFAULT_PET_STATE, currentPetState, onCelebrate, petView, type PetState } from "../lib/petState";
 import { openTracker, setHitMask, showPetMenu } from "../lib/settings";
 import { startMessageLoop } from "../lib/messages";
 import { startSyncLoop } from "../lib/sync";
-import { ENVELOPE_POS, H, W, composePet, hitMask, type Mood } from "./sprite";
+import { H, W, composePet, hitMask, type Mood } from "./sprite";
 
 const TICK_MS = 100;
 const HAPPY_MS = 90_000; // after a new contribution
@@ -22,6 +22,8 @@ export function PetWindow() {
   const state = useRef<PetState>(DEFAULT_PET_STATE);
   const flash = useRef<{ mood: Mood; until: number } | null>(null);
   const press = useRef<{ x: number; y: number } | null>(null);
+  /** When the current emotion arrived (its intro animation plays from here). */
+  const emotionSince = useRef(0);
 
   const setFlash = (mood: Mood, ms: number) => {
     flash.current = { mood, until: Date.now() + ms };
@@ -37,10 +39,10 @@ export function PetWindow() {
   useEffect(() => {
     const apply = (next: PetState) => {
       const prev = state.current;
-      const prevStage = stageFor(prev.count);
-      const nextStage = stageFor(next.count);
-      if (nextStage > prevStage) {
-        setFlash("celebrating", nextStage === MAX_STAGE ? FULL_BLOOM_MS : STAGE_UP_MS);
+      if (next.emotionKey && next.emotionKey !== prev.emotionKey) emotionSince.current = Date.now();
+      // compare stages, not counts: the scale can change when a new week starts
+      if (next.stage > prev.stage && next.count > prev.count) {
+        setFlash("celebrating", next.stage === MAX_STAGE ? FULL_BLOOM_MS : STAGE_UP_MS);
       } else if (next.count > prev.count) {
         setFlash("happy", HAPPY_MS);
       } else if (next.count === 0 && prev.count > 0) {
@@ -50,8 +52,12 @@ export function PetWindow() {
     };
 
     const refresh = () => currentPetState().then(apply);
-    // first load is silent: no celebration for growth that happened while closed
-    currentPetState().then((s) => (state.current = s));
+    // First load is silent (no celebration for growth that happened while
+    // closed), but an emotion that arrived meanwhile still plays its intro.
+    currentPetState().then((s) => {
+      state.current = s;
+      if (s.emotion) emotionSince.current = Date.now();
+    });
     const id = setInterval(refresh, REFRESH_MS);
     const unlisten = [onDataChanged(refresh), onCelebrate(() => setFlash("celebrating", FULL_BLOOM_MS))];
     return () => {
@@ -79,15 +85,16 @@ export function PetWindow() {
         nextBlink = now + 2500 + Math.random() * 4000;
       }
       const s = state.current;
-      const mask = hitMask({ count: s.count, mood: "idle", offline: s.offline, hasMessage: s.hasMessage });
+      const mask = hitMask(petView(s, "idle"));
       if (mask !== lastMask) {
         lastMask = mask;
         setHitMask(mask);
       }
-      const pixels = composePet(
-        { count: s.count, mood: currentMood(), offline: s.offline, hasMessage: s.hasMessage },
-        { t: now, blink: now < blinkUntil },
-      );
+      const pixels = composePet(petView(s, currentMood()), {
+        t: now,
+        blink: now < blinkUntil,
+        emotionAge: now - emotionSince.current,
+      });
       const key = pixels.join();
       if (key === last) return;
       last = key;
@@ -101,13 +108,7 @@ export function PetWindow() {
     return () => clearInterval(id);
   }, []);
 
-  const toSprite = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    return {
-      x: Math.floor(((e.clientX - rect.left) / rect.width) * W),
-      y: Math.floor(((e.clientY - rect.top) / rect.height) * H),
-    };
-  };
+  const hasUnread = () => state.current.hasNote || !!state.current.emotion;
 
   const onMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) press.current = { x: e.clientX, y: e.clientY };
@@ -122,15 +123,13 @@ export function PetWindow() {
     }
   };
 
-  const onMouseUp = (e: React.MouseEvent) => {
+  // Click: skip a celebration, otherwise open any unread note/emotion (which
+  // marks it read, so the envelope and the emotion clear).
+  const onMouseUp = () => {
     if (!press.current) return;
     press.current = null;
-    const { x, y } = toSprite(e);
-    const env = ENVELOPE_POS;
-    const onEnvelope =
-      state.current.hasMessage && x >= env.x && x < env.x + env.w && y >= env.y - 1 && y < env.y + env.h;
-    if (onEnvelope) openTracker("messages");
-    else if (currentMood() === "celebrating") flash.current = null; // click to skip
+    if (currentMood() === "celebrating") flash.current = null;
+    else if (hasUnread()) openTracker("messages");
   };
 
   return (
@@ -142,7 +141,7 @@ export function PetWindow() {
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-      onDoubleClick={() => openTracker("activity")}
+      onDoubleClick={() => !hasUnread() && openTracker("activity")}
       onContextMenu={(e) => {
         e.preventDefault();
         showPetMenu();
