@@ -9,7 +9,7 @@ export const GITHUB_SCOPE = "read:user";
 /** How many weeks of history we fetch: shown in the tracker's graph and used to scale growth. */
 export const HISTORY_WEEKS = 24;
 
-export const SYNC_EVERY_MS = 10 * 60_000;
+export const SYNC_EVERY_MS = 5 * 60_000;
 
 /** Supabase project for messages (the publishable key is meant to be public). */
 export const SUPABASE_URL = "https://tuvacbefvbhvnuyeoogu.supabase.co";

@@ -23,8 +23,11 @@ export async function syncOnce(): Promise<SyncStatus> {
   const prev = await getSyncStatus();
   let status: SyncStatus;
 
-  const token = await getSecret("github_token").catch(() => null);
-  if (!token) {
+  // A Keychain failure isn't a logout: keep the account and data, and retry.
+  const token = await getSecret("github_token").catch(() => undefined);
+  if (token === undefined) {
+    status = { ...prev, lastAttemptAt: now.toISOString(), error: "keychain" };
+  } else if (!token) {
     status = { ...prev, lastAttemptAt: now.toISOString(), error: "not_connected" };
   } else {
     try {
@@ -65,7 +68,7 @@ export function startSyncLoop(): () => void {
     run: async () => {
       const { error } = await syncOnce();
       updateTray();
-      if (error === "offline" || error === "rate_limited" || error === "unknown") return "retry";
+      if (error === "offline" || error === "rate_limited" || error === "unknown" || error === "keychain") return "retry";
       return error ? "idle" : "ok";
     },
   });

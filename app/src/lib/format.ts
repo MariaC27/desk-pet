@@ -14,6 +14,7 @@ export function timeAgo(iso: string, now = new Date()): string {
 export function syncStatusText(s: SyncStatus, now = new Date()): string {
   if (s.error === "not_connected") return "GitHub not connected";
   if (s.error === "auth") return "GitHub needs reconnecting";
+  if (s.error === "keychain") return "Waiting for Keychain access";
   if (!s.lastSuccessAt) return s.error ? "Can't reach GitHub yet" : "Not synced yet";
   const ago = timeAgo(s.lastSuccessAt, now);
   if (s.error === "offline") return `Offline · synced ${ago}`;

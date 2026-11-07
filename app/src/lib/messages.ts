@@ -106,7 +106,12 @@ async function flushPendingReads(secret: string) {
 }
 
 export async function checkMessagesOnce(): Promise<PollResult> {
-  const secret = await getSecret("device_secret").catch(() => null);
+  let secret: string | null;
+  try {
+    secret = await getSecret("device_secret");
+  } catch {
+    return "retry"; // Keychain unavailable for now; still paired
+  }
   if (!secret) return "idle";
 
   try {

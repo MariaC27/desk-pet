@@ -19,7 +19,7 @@ export interface CalendarCache {
   restrictedCount: number;
 }
 
-export type SyncError = "not_connected" | "auth" | "offline" | "rate_limited" | "unknown";
+export type SyncError = "not_connected" | "keychain" | "auth" | "offline" | "rate_limited" | "unknown";
 
 export interface SyncStatus {
   lastSuccessAt: string | null;

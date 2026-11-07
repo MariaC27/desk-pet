@@ -4,7 +4,7 @@ import { getAccount, setPlantStyle, type Account } from "../lib/data";
 import { GitHubError, startDeviceFlow, waitForToken, type DeviceCode } from "../lib/github";
 import { currentPetState, DEFAULT_PET_STATE, petView, type PetState } from "../lib/petState";
 import { useRoute } from "../lib/route";
-import { setSecret } from "../lib/secrets";
+import { KeychainError, setSecret } from "../lib/secrets";
 import {
   finishOnboarding,
   setAutostart,
@@ -64,6 +64,7 @@ const ERROR_TEXT: Record<string, string> = {
   denied: "No problem. You can connect whenever you're ready.",
   expired: "That code expired. Let's get a fresh one.",
   offline: "Couldn't reach GitHub. Check your internet connection and try again.",
+  keychain: "Couldn't save your login to the Keychain. If macOS asks for access, click Allow, then try again.",
 };
 
 function ConnectGitHub({ onNext }: { onNext: () => void }) {
@@ -88,7 +89,7 @@ function ConnectGitHub({ onNext }: { onNext: () => void }) {
     } catch (e) {
       if (controller.signal.aborted) return;
       console.error("connect failed", e);
-      const kind = e instanceof GitHubError ? e.kind : "unknown";
+      const kind = e instanceof GitHubError ? e.kind : e instanceof KeychainError ? "keychain" : "unknown";
       setState({ phase: "error", message: ERROR_TEXT[kind] ?? "Something went wrong connecting to GitHub. Try again?" });
     }
   };

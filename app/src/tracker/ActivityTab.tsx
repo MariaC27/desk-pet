@@ -54,6 +54,18 @@ function StatusBanner({ status }: { status: SyncStatus }) {
           </button>
         </div>
       );
+    case "keychain":
+      return (
+        <div className="banner">
+          <span>
+            Desk Pet couldn't open its saved GitHub login. If macOS asks about Keychain access, click
+            Always Allow. You're still connected.
+          </span>
+          <button className="button" onClick={requestSync}>
+            Try again
+          </button>
+        </div>
+      );
     case "auth":
       return (
         <div className="banner">
@@ -106,8 +118,8 @@ function ThisWeek({ pet, now }: { pet: PetState; now: Date }) {
             : `${remaining} more to become a ${STAGE_NAMES[stage + 1].toLowerCase()}.`}
         </p>
         <p className="muted small">
-          Full bloom at {bloomAt} this week
-          {scale.personalized ? `, based on your last ${HISTORY_WEEKS} weeks.` : ". This adjusts to you after a few weeks of history."}
+          Full bloom at {bloomAt} this wk
+          {scale.personalized ? `, based on last ${HISTORY_WEEKS} wks.` : ". This adjusts to you after a few weeks of history."}
         </p>
       </div>
     </div>
