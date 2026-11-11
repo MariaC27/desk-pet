@@ -19,5 +19,5 @@ npm run icons      # regenerate tray + app icons from the sprite
 npm run release    # build Desk Pet.app + .dmg
 ```
 
-In dev, the menu-bar icon has a **Dev Panel** entry for jumping to any stage,
+In dev, the menu-bar icon has a **Dev Panel** entry for testing any stage,
 mood, or overlay without waiting for real activity.
