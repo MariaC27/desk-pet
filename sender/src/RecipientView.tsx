@@ -220,8 +220,8 @@ function Pairing({ recipient, devices, onChange }: { recipient: Recipient; devic
           <p className="small muted">Pairing code for {recipient.display_name}:</p>
           <p className="code">{code}</p>
           <p className="small muted">
-            Enter it during Desk Pet's setup, or in Settings → Messages. It works once and expires in
-            14 days. Making a new code cancels this one.
+            Enter it during Desk Pet's setup, or in Settings → Messages. It works once and doesn't
+            expire. Making a new code cancels this one.
           </p>
         </div>
       ) : null}
