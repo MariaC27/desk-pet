@@ -191,14 +191,14 @@ function PairMessages({ onNext }: { onNext: () => void }) {
       <PetPreview view={{ ...petView(DEFAULT_PET_STATE, "idle"), hasNote: true }} scale={4} />
       <h1>Got a pairing code?</h1>
       <p>
-        Someone who cares about you can send little notes to your plant. If they gave you a code,
-        enter it here.
+        This one's optional. If someone set up little notes for your plant, they gave you a code
+        that looks like PLANT-XXXX-XXXX.
       </p>
       <PairForm onPaired={(name) => setPaired({ name })} />
       <button className="link" onClick={onNext}>
-        Skip for now
+        I don't have a code
       </button>
-      <p className="muted small">You can pair later in Settings → Messages.</p>
+      <p className="muted small">Everything else works without one. You can add a code later in Settings.</p>
     </section>
   );
 }

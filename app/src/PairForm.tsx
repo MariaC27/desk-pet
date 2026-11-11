@@ -3,7 +3,7 @@ import { MessagesError, pair } from "./lib/messages";
 
 const ERROR_TEXT: Record<string, string> = {
   invalid_code:
-    "That code didn't work. Check for typos, or ask for a new one (codes work once and expire after 14 days).",
+    "That code didn't work. Check for typos, or ask for a new one (each code works only once).",
   offline: "Couldn't reach the server. Check your internet connection and try again.",
 };
 
