@@ -659,3 +659,8 @@ input:focus {
   background: var(--green-soft);
   font-weight: 600;
 }
+
+.update-notes {
+  white-space: pre-wrap;
+  margin: 0;
+}

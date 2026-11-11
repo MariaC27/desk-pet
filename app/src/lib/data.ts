@@ -95,5 +95,16 @@ export const setNotifyMessages = (on: boolean) => set("notifyMessages", on);
 export const getPlantStyle = async () => (await get<PlantStyle>("plantStyle")) ?? "blossom";
 export const setPlantStyle = (p: PlantStyle) => set("plantStyle", p);
 
+/** A newer release found by the last check (see lib/updates.ts). */
+export interface UpdateInfo {
+  version: string;
+  notes: string | null;
+}
+export const getUpdate = () => get<UpdateInfo>("update");
+export const setUpdate = (u: UpdateInfo | null) => set("update", u);
+/** Version we last sent a notification about, so each one is announced once. */
+export const getUpdateNotified = () => get<string>("updateNotified");
+export const setUpdateNotified = (v: string) => set("updateNotified", v);
+
 export const requestMessageCheck = () => emit("check-messages");
 export const onMessageCheckRequested = (cb: () => void) => listen("check-messages", cb);

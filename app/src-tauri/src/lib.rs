@@ -1,4 +1,5 @@
 mod secrets;
+mod updates;
 
 use std::{sync::Mutex, thread, time::Duration};
 
@@ -30,9 +31,34 @@ struct HitMask(Mutex<Vec<bool>>);
 
 /// Tray menu items whose label/checked state changes at runtime.
 struct TrayItems {
+    menu: Menu<Wry>,
     status: MenuItem<Wry>,
     toggle_pet: MenuItem<Wry>,
     autostart: CheckMenuItem<Wry>,
+    /// "Update Available…" + separator, at the top of the menu only while there is one.
+    update: (MenuItem<Wry>, PredefinedMenuItem<Wry>),
+    update_shown: Mutex<bool>,
+}
+
+/// Show or hide the tray's "Update Available" item.
+pub(crate) fn set_update_item(app: &AppHandle, version: Option<&str>) {
+    let Some(items) = app.try_state::<TrayItems>() else { return };
+    let mut shown = items.update_shown.lock().unwrap();
+    let (item, sep) = &items.update;
+    match version {
+        Some(v) => {
+            let _ = item.set_text(format!("Update Available ({v})…"));
+            if !*shown && items.menu.insert_items(&[item, sep], 0).is_ok() {
+                *shown = true;
+            }
+        }
+        None if *shown => {
+            let _ = items.menu.remove(item);
+            let _ = items.menu.remove(sep);
+            *shown = false;
+        }
+        None => {}
+    }
 }
 
 fn pet_window(app: &AppHandle) -> Result<WebviewWindow, String> {
@@ -300,7 +326,7 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
         }
         "hide_pet" => set_pet_visible(app.clone(), false),
         "open_tracker" | "status" => open_tracker(app.clone(), "activity".into()),
-        "settings" => open_tracker(app.clone(), "settings".into()),
+        "settings" | "update" => open_tracker(app.clone(), "settings".into()),
         "dev_panel" => open_tracker(app.clone(), "dev".into()),
         "sync_now" => app.emit("sync-now", ()).map_err(|e| e.to_string()),
         "autostart" => {
@@ -360,7 +386,18 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .build(app)?;
 
-    app.manage(TrayItems { status, toggle_pet, autostart });
+    let update = (
+        MenuItem::with_id(app, "update", "Update Available…", true, None::<&str>)?,
+        PredefinedMenuItem::separator(app)?,
+    );
+    app.manage(TrayItems {
+        menu,
+        status,
+        toggle_pet,
+        autostart,
+        update,
+        update_shown: Mutex::new(false),
+    });
     Ok(())
 }
 
@@ -398,6 +435,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(
             tauri_plugin_window_state::Builder::default()
@@ -405,6 +443,7 @@ pub fn run() {
                 .build(),
         )
         .manage(HitMask::default())
+        .manage(updates::PendingUpdate::default())
         .on_menu_event(on_menu_event)
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -423,6 +462,8 @@ pub fn run() {
             secrets::secret_get,
             secrets::secret_set,
             secrets::secret_delete,
+            updates::check_update,
+            updates::install_update,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

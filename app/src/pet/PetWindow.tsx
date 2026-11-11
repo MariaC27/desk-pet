@@ -6,6 +6,7 @@ import { DEFAULT_PET_STATE, currentPetState, onCelebrate, petView, type PetState
 import { openTracker, setHitMask, showPetMenu } from "../lib/settings";
 import { markRead, startMessageLoop } from "../lib/messages";
 import { startSyncLoop } from "../lib/sync";
+import { startUpdateLoop } from "../lib/updates";
 import { H, W, composePet, hitMask, type Mood } from "./sprite";
 
 const TICK_MS = 100;
@@ -68,6 +69,7 @@ export function PetWindow() {
 
   useEffect(() => startSyncLoop(), []);
   useEffect(() => startMessageLoop(), []);
+  useEffect(() => startUpdateLoop(), []);
 
   // render loop
   useEffect(() => {

@@ -16,3 +16,6 @@ export const SUPABASE_URL = "https://tuvacbefvbhvnuyeoogu.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_fxKVI6nIUKcUfPOtUeQaYw_gTrLXaV_";
 
 export const MESSAGES_EVERY_MS = 2 * 60_000;
+
+/** How often to look for a new release (only looks; installing is up to the person). */
+export const UPDATE_CHECK_EVERY_MS = 6 * 60 * 60_000;

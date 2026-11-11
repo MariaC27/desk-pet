@@ -1,7 +1,7 @@
 {
   "name": "desk-pet",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "start": "tauri dev --config src-tauri/tauri.dev.conf.json",
@@ -10,7 +10,7 @@
     "test": "TZ=America/New_York vitest run",
     "sprites": "tsx scripts/render-sprites.ts",
     "icons": "tsx scripts/render-icons.ts && tauri icon icon-source.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
-    "release": "tauri build",
+    "release": "bash scripts/release.sh",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import {
   EMPTY_STATUS,
@@ -7,10 +8,12 @@ import {
   setNotifyMessages,
   setPlantStyle,
   setSyncStatus,
+  type UpdateInfo,
 } from "../lib/data";
 import { syncStatusText } from "../lib/format";
 import { unpair } from "../lib/messages";
 import { deleteSecret } from "../lib/secrets";
+import { checkForUpdate, installUpdate } from "../lib/updates";
 import {
   getSettings,
   onSettingsChanged,
@@ -141,6 +144,7 @@ export function SettingsTab() {
 
       <div className="card stack">
         <h2>App</h2>
+        <UpdateRow update={data.update} />
         <Toggle
           label="Open at login"
           hint="Brings your plant back after you restart your Mac."
@@ -186,5 +190,93 @@ export function SettingsTab() {
         To remove Desk Pet completely, quit it and drag it from Applications to the Trash.
       </p>
     </section>
+  );
+}
+
+type UpdatePhase =
+  | { phase: "idle" }
+  | { phase: "checking" }
+  | { phase: "upToDate" }
+  | { phase: "installing"; progress: number | null }
+  | { phase: "error"; message: string };
+
+/** Current version, and an "Install & Restart" button when there's a newer one. Never installs on its own. */
+function UpdateRow({ update }: { update: UpdateInfo | null }) {
+  const [version, setVersion] = useState("");
+  const [state, setState] = useState<UpdatePhase>({ phase: "idle" });
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
+
+  const check = async () => {
+    setState({ phase: "checking" });
+    try {
+      const found = await checkForUpdate();
+      setState(found ? { phase: "idle" } : { phase: "upToDate" });
+    } catch {
+      setState({ phase: "error", message: "Couldn't check for updates. Try again later?" });
+    }
+  };
+
+  const install = async () => {
+    setState({ phase: "installing", progress: null });
+    try {
+      // Re-check first so the update is loaded even if the app restarted since it was found.
+      if (!(await checkForUpdate())) return setState({ phase: "upToDate" });
+      await installUpdate((progress) => setState({ phase: "installing", progress }));
+    } catch {
+      setState({ phase: "error", message: "The update didn't install. Try again?" });
+    }
+  };
+
+  if (state.phase === "installing") {
+    const pct = state.progress === null ? null : Math.round(state.progress * 100);
+    return (
+      <div className="row">
+        <span className="stack tight">
+          <span>Updating to {update?.version}…</span>
+          <span className="muted small">
+            {pct === null ? "Downloading" : pct < 100 ? `Downloading · ${pct}%` : "Installing"}. Desk Pet
+            restarts when it's done.
+          </span>
+        </span>
+      </div>
+    );
+  }
+
+  if (update) {
+    return (
+      <div className="stack tight">
+        <div className="row">
+          <span className="stack tight">
+            <span>Desk Pet {update.version} is available</span>
+            <span className="muted small">You have {version}. Your plant and settings stay as they are.</span>
+          </span>
+          <button className="button primary" onClick={install}>
+            Install &amp; Restart
+          </button>
+        </div>
+        {update.notes && <p className="muted small update-notes">{update.notes}</p>}
+        {state.phase === "error" && <p className="error small">{state.message}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="row">
+      <span className="stack tight">
+        <span>Version {version}</span>
+        <span className={state.phase === "error" ? "error small" : "muted small"}>
+          {state.phase === "upToDate"
+            ? "You're up to date."
+            : state.phase === "error"
+              ? state.message
+              : "Desk Pet checks for updates and lets you know. Nothing installs on its own."}
+        </span>
+      </span>
+      <button className="button" disabled={state.phase === "checking"} onClick={check}>
+        {state.phase === "checking" ? "Checking…" : "Check for Updates"}
+      </button>
+    </div>
   );
 }

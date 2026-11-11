@@ -7,14 +7,17 @@ import {
   getNotifyMessages,
   getPairing,
   getSyncStatus,
+  getUpdate,
   onDataChanged,
   type Account,
   type CalendarCache,
   type Message,
   type Pairing,
   type SyncStatus,
+  type UpdateInfo,
 } from "../lib/data";
 import { DEFAULT_PET_STATE, currentPetState, type PetState } from "../lib/petState";
+import { availableUpdate } from "../lib/updates";
 
 export interface AppData {
   account: Account | null;
@@ -25,6 +28,8 @@ export interface AppData {
   /** Newest first. */
   messages: Message[];
   notifyMessages: boolean;
+  /** A newer version ready to install, if any. */
+  update: UpdateInfo | null;
 }
 
 /** Everything the tracker shows, kept fresh via "data-changed" and a 1-minute tick. */
@@ -33,7 +38,7 @@ export function useAppData(): AppData | null {
 
   useEffect(() => {
     const refresh = async () => {
-      const [account, calendar, status, pet, pairing, messages, notifyMessages] = await Promise.all([
+      const [account, calendar, status, pet, pairing, messages, notifyMessages, update] = await Promise.all([
         getAccount(),
         getCalendar(),
         getSyncStatus(),
@@ -41,6 +46,7 @@ export function useAppData(): AppData | null {
         getPairing(),
         getMessages(),
         getNotifyMessages(),
+        getUpdate().then(availableUpdate),
       ]);
       setData({
         account,
@@ -50,6 +56,7 @@ export function useAppData(): AppData | null {
         pairing,
         messages: [...messages].reverse(),
         notifyMessages,
+        update,
       });
     };
     refresh();
