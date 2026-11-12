@@ -343,3 +343,10 @@ textarea {
   font-size: 13px;
   font-weight: 600;
 }
+
+.gift-link {
+  align-self: center;
+  margin-top: 16px;
+  font-size: 14px;
+  text-decoration: none;
+}

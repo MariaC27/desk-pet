@@ -62,6 +62,10 @@ export function Home() {
           }}
         />
       ) : null}
+
+      <a className="link subtle gift-link" href="/gift/" target="_blank" rel="noopener">
+        Preview gift page ↗
+      </a>
     </main>
   )
 }

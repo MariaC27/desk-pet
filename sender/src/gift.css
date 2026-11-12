@@ -1,0 +1,234 @@
+/* Gift page (Gift.tsx, /gift). One deliberate light look in both color schemes, like a card:
+   a pale-leaf desktop with pixel dots, the plant's own greens and a kraft-paper present, a pixel display face. */
+.gift {
+  --g-leaf: #e4eedc;
+  --g-leaf-2: #d3e3c6;
+  --g-ink: #3a2626;
+  --g-ink-soft: #6b5552;
+  --g-accent: #9bd977;
+  --g-accent-hover: #b0e391;
+  --g-accent-deep: #3f7a3a;
+  --g-paper: #fbfdf8;
+  --g-line: #4a3432;
+  --g-display: 'Pixelify Sans', ui-monospace, 'SF Mono', Menlo, monospace;
+  --g-body: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--g-leaf) radial-gradient(var(--g-leaf-2) 1.5px, transparent 1.6px) 0 0 / 22px 22px;
+  color: var(--g-ink);
+  font-family: var(--g-body);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.gift,
+.gift * {
+  box-sizing: border-box;
+}
+
+.gift-main {
+  flex: 1;
+  width: 100%;
+  max-width: 38rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: calc(2.5rem + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 2.5rem
+    max(16px, env(safe-area-inset-left, 0px));
+}
+.gift p {
+  margin: 0;
+}
+.gift-eyebrow {
+  font-family: var(--g-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--g-accent-deep);
+}
+.gift h1 {
+  font-family: var(--g-display);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 11vw, 3.8rem);
+  line-height: 1;
+  margin: 0;
+  text-wrap: balance;
+}
+.gift h2 {
+  font-family: var(--g-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 8vw, 2.4rem);
+  line-height: 1.1;
+  margin: 0;
+}
+.gift-lede {
+  color: var(--g-ink-soft);
+  max-width: 30rem;
+  text-wrap: balance;
+}
+
+.gift-stage {
+  width: min(340px, 80vw);
+  aspect-ratio: 64 / 48;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.gift-stage:focus-visible {
+  outline: 3px solid var(--g-accent-deep);
+  outline-offset: 6px;
+}
+.gift-stage canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+.gift-hint {
+  font-family: var(--g-display);
+  color: var(--g-accent-deep);
+}
+
+.gift-reveal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  animation: gift-rise 0.6s ease-out both;
+}
+@keyframes gift-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.gift-styles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.gift-styles button,
+.gift-setup a {
+  font: 500 0.95rem var(--g-display);
+  color: var(--g-ink);
+  background: var(--g-paper);
+  border: 2px solid var(--g-line);
+  border-radius: 6px;
+  padding: 0.4rem 0.85rem;
+  box-shadow: 0 3px 0 var(--g-line);
+  cursor: pointer;
+  text-decoration: none;
+}
+.gift-styles button[aria-pressed='true'],
+.gift-setup a {
+  background: var(--g-accent);
+}
+.gift-setup a:hover {
+  background: var(--g-accent-hover);
+}
+.gift-styles button:active,
+.gift-setup a:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--g-line);
+}
+.gift-styles button:focus-visible,
+.gift-setup a:focus-visible {
+  outline: 3px solid var(--g-accent-deep);
+  outline-offset: 2px;
+}
+
+.gift-window {
+  width: 100%;
+  text-align: left;
+  background: var(--g-paper);
+  border: 2px solid var(--g-line);
+  border-radius: 10px;
+  box-shadow: 0 6px 0 var(--g-line);
+  overflow: hidden;
+}
+.gift-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 2px solid var(--g-line);
+  background: var(--g-leaf-2);
+  font: 500 0.85rem var(--g-display);
+}
+.gift-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--g-line);
+  background: var(--g-paper);
+}
+.gift-bar i:first-child {
+  background: var(--g-accent);
+}
+.gift-bar span {
+  margin-left: 0.4rem;
+}
+.gift-feats {
+  list-style: none;
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+.gift-feats b {
+  display: block;
+  font: 500 1.1rem var(--g-display);
+}
+.gift-feats p {
+  margin-top: 0.1rem;
+  color: var(--g-ink-soft);
+  font-size: 0.97rem;
+}
+.gift-setup {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  border-top: 2px dashed var(--g-leaf-2);
+  padding: 1.1rem 1.25rem 1.3rem;
+}
+.gift-setup b {
+  font: 700 1.35rem var(--g-display);
+  color: var(--g-accent-deep);
+}
+.gift-sign {
+  font-family: var(--g-display);
+  color: var(--g-ink-soft);
+}
+.gift-heart {
+  display: block;
+  margin-top: -0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-reveal {
+    animation: none;
+  }
+}
+
+/* copyright at the very bottom of the page, before and after the gift is opened */
+.gift-footer {
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
+  text-align: center;
+  font: 500 0.8rem var(--g-display);
+  letter-spacing: 0.04em;
+  color: var(--g-ink-soft);
+}
