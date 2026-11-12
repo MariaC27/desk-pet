@@ -51,7 +51,10 @@ npx tauri build --target universal-apple-darwin ${extra[@]+"${extra[@]}"}
 bundle="src-tauri/target/universal-apple-darwin/release/bundle"
 rm -rf "$out"
 mkdir -p "$out"
-cp "$bundle"/dmg/*.dmg "$out/DeskPet-$version.dmg"
+# Re-pack the dmg without Tauri's signature: macOS rejects disk images signed
+# by a certificate it can't verify ("Apple could not verify…"), but opens
+# unsigned ones. The app inside stays signed, so it's checked once on first launch.
+hdiutil convert "$bundle"/dmg/*.dmg -format UDZO -o "$out/DeskPet-$version.dmg" >/dev/null
 cp "$bundle/macos/Desk Pet.app.tar.gz" "$out/DeskPet.app.tar.gz"
 
 SIG="$(cat "$bundle/macos/Desk Pet.app.tar.gz.sig")" URL="$base/DeskPet.app.tar.gz" \
