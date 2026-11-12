@@ -1,7 +1,14 @@
 mod secrets;
 mod updates;
 
-use std::{sync::Mutex, thread, time::Duration};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    thread,
+    time::Duration,
+};
 
 use tauri::{
     image::Image,
@@ -23,6 +30,12 @@ const DEFAULT_SCALE: f64 = 4.0;
 
 /// How often the cursor is checked against the pet's shape.
 const HIT_TEST_INTERVAL: Duration = Duration::from_millis(40);
+
+/// How often the pet follows the cursor while being dragged (~120 fps).
+const DRAG_INTERVAL: Duration = Duration::from_millis(8);
+
+/// True while the pet is being dragged, so clicks aren't let through mid-drag.
+static DRAGGING: AtomicBool = AtomicBool::new(false);
 
 /// Which sprite pixels catch the mouse (row-major, PET_W x PET_H).
 /// Empty until the pet window sends one: then the whole window is clickable.
@@ -271,13 +284,29 @@ fn set_hit_mask(mask: String, hit: tauri::State<HitMask>) {
     }
 }
 
+/// The cursor in screen points. Tauri reports it in pixels of the *primary*
+/// display, while window positions use the window's own display, so the two
+/// only agree once both are converted back to points.
+fn cursor_point(app: &AppHandle) -> Option<LogicalPosition<f64>> {
+    let scale = app.primary_monitor().ok()??.scale_factor();
+    Some(app.cursor_position().ok()?.to_logical(scale))
+}
+
+/// The pet window's top-left corner and size in screen points.
+fn pet_frame(pet: &WebviewWindow) -> Option<(LogicalPosition<f64>, LogicalSize<f64>)> {
+    let scale = pet.scale_factor().ok()?;
+    Some((
+        pet.outer_position().ok()?.to_logical(scale),
+        pet.outer_size().ok()?.to_logical(scale),
+    ))
+}
+
 /// Is the cursor over a visible part of the pet? None if it can't be determined.
 fn cursor_over_pet(app: &AppHandle, pet: &WebviewWindow) -> Option<bool> {
-    let cursor = app.cursor_position().ok()?;
-    let pos = pet.outer_position().ok()?;
-    let size = pet.outer_size().ok()?;
-    let fx = (cursor.x - pos.x as f64) / size.width as f64;
-    let fy = (cursor.y - pos.y as f64) / size.height as f64;
+    let cursor = cursor_point(app)?;
+    let (pos, size) = pet_frame(pet)?;
+    let fx = (cursor.x - pos.x) / size.width;
+    let fy = (cursor.y - pos.y) / size.height;
     if !(0.0..1.0).contains(&fx) || !(0.0..1.0).contains(&fy) {
         return Some(false);
     }
@@ -302,12 +331,56 @@ fn spawn_click_through(app: AppHandle) {
             if !pet.is_visible().unwrap_or(false) {
                 continue;
             }
-            let Some(over) = cursor_over_pet(&app, &pet) else { continue };
+            let over = if DRAGGING.load(Ordering::Relaxed) {
+                true
+            } else {
+                let Some(over) = cursor_over_pet(&app, &pet) else { continue };
+                over
+            };
             if over == ignoring && pet.set_ignore_cursor_events(!over).is_ok() {
                 ignoring = !over;
             }
         }
     });
+}
+
+fn left_mouse_down() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        objc2_app_kit::NSEvent::pressedMouseButtons() & 1 == 1
+    }
+    #[cfg(not(target_os = "macos"))]
+    false
+}
+
+/// Moves the pet with the cursor until the mouse button is released.
+/// The window's native drag (`startDragging`) silently does nothing when Desk
+/// Pet isn't the active app, which is most of the time, so it's done here.
+#[tauri::command]
+fn drag_pet(app: AppHandle) -> Result<(), String> {
+    if DRAGGING.swap(true, Ordering::Relaxed) {
+        return Ok(());
+    }
+    let pet = pet_window(&app)?;
+    let start = (|| Some((cursor_point(&app)?, pet_frame(&pet)?.0)))();
+    let Some((cursor0, window0)) = start else {
+        DRAGGING.store(false, Ordering::Relaxed);
+        return Err("can't read the cursor position".into());
+    };
+    thread::spawn(move || {
+        while left_mouse_down() {
+            if let Some(cursor) = cursor_point(&app) {
+                let _ = pet.set_position(LogicalPosition::new(
+                    window0.x + cursor.x - cursor0.x,
+                    window0.y + cursor.y - cursor0.y,
+                ));
+            }
+            thread::sleep(DRAG_INTERVAL);
+        }
+        DRAGGING.store(false, Ordering::Relaxed);
+        let _ = app.save_window_state(StateFlags::POSITION);
+    });
+    Ok(())
 }
 
 #[tauri::command]
@@ -458,6 +531,7 @@ pub fn run() {
             set_tray_status,
             show_pet_menu,
             set_hit_mask,
+            drag_pet,
             quit_app,
             secrets::secret_get,
             secrets::secret_set,

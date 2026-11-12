@@ -177,7 +177,9 @@ const ENVELOPE = [
   "ommmkkmmmo",
   "oooooooooo",
 ];
-export const ENVELOPE_POS = { x: 30, y: 33, w: 10, h: 6 };
+// Centered on the plant, resting on the soil in front of the stem, so it never sits at the
+// window edge where it can get cut off.
+export const ENVELOPE_POS = { x: 15, y: 22, w: 10, h: 6 };
 
 // ---- blossom: one stem with leaves, pink flowers at full bloom ---------------------------
 

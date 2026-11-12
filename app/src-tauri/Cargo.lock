@@ -820,6 +820,7 @@ name = "desk-pet"
 version = "1.0.0"
 dependencies = [
  "keyring",
+ "objc2-app-kit",
  "serde",
  "serde_json",
  "tauri",

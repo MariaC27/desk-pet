@@ -11,6 +11,7 @@ export interface Settings {
 }
 
 export const PET_SIZES = [
+  { label: "XS", scale: 2 },
   { label: "Small", scale: 3 },
   { label: "Medium", scale: 4 },
   { label: "Large", scale: 5 },

@@ -350,3 +350,15 @@ textarea {
   font-size: 14px;
   text-decoration: none;
 }
+
+.pager {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.pager .link:disabled {
+  color: var(--muted);
+  opacity: 0.5;
+  cursor: default;
+}

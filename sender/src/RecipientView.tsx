@@ -3,6 +3,7 @@ import { EMOTIONS, emotionInfo, type Emotion } from './emotions'
 import { MAX_MESSAGE_LENGTH, supabase, type Device, type Message, type Recipient } from './supabase'
 
 const REFRESH_MS = 20_000
+const PAGE_SIZE = 5 // sent messages per page, newest first
 
 const when = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const fmt = (iso: string) => when.format(new Date(iso))
@@ -127,6 +128,10 @@ function Status({ m }: { m: Message }) {
 
 function History({ messages, onChange }: { messages: Message[]; onChange: () => void }) {
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const pages = Math.max(1, Math.ceil(messages.length / PAGE_SIZE))
+  const current = Math.min(page, pages - 1) // stays in range when a delete empties the last page
+  const shown = messages.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE)
 
   const remove = async (id: string) => {
     await supabase.from('messages').delete().eq('id', id)
@@ -138,7 +143,7 @@ function History({ messages, onChange }: { messages: Message[]; onChange: () => 
     <section className="card">
       <h2>Sent</h2>
       <ul className="messages">
-        {messages.map((m) => (
+        {shown.map((m) => (
           <li key={m.id}>
             <div className="message-line">
               {m.mood && (
@@ -171,6 +176,19 @@ function History({ messages, onChange }: { messages: Message[]; onChange: () => 
           </li>
         ))}
       </ul>
+      {pages > 1 && (
+        <nav className="pager row small muted" aria-label="Sent messages pages">
+          <button className="link" disabled={current === 0} onClick={() => setPage(current - 1)}>
+            ← Newer
+          </button>
+          <span>
+            {current * PAGE_SIZE + 1}–{current * PAGE_SIZE + shown.length} of {messages.length}
+          </span>
+          <button className="link" disabled={current === pages - 1} onClick={() => setPage(current + 1)}>
+            Older →
+          </button>
+        </nav>
+      )}
     </section>
   )
 }

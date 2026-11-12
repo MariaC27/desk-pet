@@ -194,7 +194,7 @@ export function Gift() {
                 </li>
                 <li>
                   <b>Lives on your desktop</b>
-                  <p>Drag it anywhere. Double-click it to see your week and your contribution graph.</p>
+                  <p>Drag it anywhere. Double-click it to see your contribution graph, settings, and messages from me.</p>
                 </li>
                 <li>
                   <b>Gets notes and emotions from me</b>

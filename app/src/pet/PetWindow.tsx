@@ -1,4 +1,4 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef } from "react";
 import { MAX_STAGE } from "../lib/growth";
 import { getMessages, onDataChanged } from "../lib/data";
@@ -121,7 +121,7 @@ export function PetWindow() {
     if (!p || !(e.buttons & 1)) return;
     if (Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > DRAG_THRESHOLD) {
       press.current = null;
-      getCurrentWindow().startDragging();
+      invoke("drag_pet");
     }
   };
 
