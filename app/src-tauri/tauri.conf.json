@@ -15,8 +15,8 @@
       {
         "label": "pet",
         "title": "Desk Pet",
-        "width": 160,
-        "height": 176,
+        "width": 120,
+        "height": 132,
         "visible": false,
         "transparent": true,
         "decorations": false,

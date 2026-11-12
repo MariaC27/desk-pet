@@ -26,7 +26,10 @@ const STORE: &str = "settings.json";
 /// Logical pixel size of the pet sprite canvas (see src/pet/sprite.ts).
 const PET_W: f64 = 40.0;
 const PET_H: f64 = 44.0;
-const DEFAULT_SCALE: f64 = 4.0;
+const DEFAULT_SCALE: f64 = 3.0;
+/// The size picker's range (see PET_SIZES in src/lib/settings.ts).
+const MIN_SCALE: f64 = 2.0;
+const MAX_SCALE: f64 = 4.0;
 
 /// How often the cursor is checked against the pet's shape.
 const HIT_TEST_INTERVAL: Duration = Duration::from_millis(40);
@@ -154,12 +157,12 @@ fn pet_scale(app: &AppHandle) -> f64 {
         .ok()
         .and_then(|s| s.get("petScale"))
         .and_then(|v| v.as_f64())
-        .unwrap_or(DEFAULT_SCALE)
+        .map_or(DEFAULT_SCALE, |s| s.clamp(MIN_SCALE, MAX_SCALE))
 }
 
 #[tauri::command]
 fn set_pet_scale(app: AppHandle, scale: f64) -> Result<(), String> {
-    let scale = scale.clamp(2.0, 6.0);
+    let scale = scale.clamp(MIN_SCALE, MAX_SCALE);
     pet_window(&app)?
         .set_size(LogicalSize::new(PET_W * scale, PET_H * scale))
         .map_err(|e| e.to_string())?;

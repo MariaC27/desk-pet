@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { cheerFor } from "../lib/cheers";
 import { HISTORY_WEEKS } from "../lib/config";
 import { onDataChanged, requestSync, type SyncStatus } from "../lib/data";
 import { syncStatusText } from "../lib/format";
-import { MAX_STAGE, STAGE_NAMES, dayLevels, localDateKey, startOfWeek, toNextStage, type CalendarDay } from "../lib/growth";
+import { MAX_STAGE, STAGE_GOALS, STAGE_NAMES, dayLevels, localDateKey, startOfWeek, toNextStage, type CalendarDay } from "../lib/growth";
 import { petView, type PetState } from "../lib/petState";
 import { openOnboarding } from "../lib/settings";
 import { PetPreview } from "../pet/PetPreview";
@@ -97,6 +98,7 @@ function ThisWeek({ pet, now }: { pet: PetState; now: Date }) {
   const to = scale.thresholds[stage + 1] ?? from;
   const progress = remaining === null ? 1 : (count - from) / (to - from);
   const bloomAt = scale.thresholds[MAX_STAGE];
+  const cheer = cheerFor(count);
 
   return (
     <div className="card hero">
@@ -106,8 +108,9 @@ function ThisWeek({ pet, now }: { pet: PetState; now: Date }) {
           This week · {shortDate.format(start)} – {shortDate.format(addDays(start, 6))}
         </p>
         <h1>{STAGE_NAMES[stage]}</h1>
-        <p className="big-number">
-          {count} <span>contribution{count === 1 ? "" : "s"}</span>
+        <p className="big-number with-info">
+          {count}&nbsp;<span>contribution{count === 1 ? "" : "s"}</span>
+          {cheer && <Info kind="help">{cheer}</Info>}
         </p>
         <div className="progress" aria-hidden>
           <div style={{ width: `${Math.round(progress * 100)}%` }} />
@@ -115,14 +118,46 @@ function ThisWeek({ pet, now }: { pet: PetState; now: Date }) {
         <p className="muted">
           {remaining === null
             ? "Full bloom! Anything more adds extra flowers."
-            : `${remaining} more to become a ${STAGE_NAMES[stage + 1].toLowerCase()}.`}
+            : `${remaining} more to ${STAGE_GOALS[stage + 1]}.`}
         </p>
-        <p className="muted small">
-          Full bloom at {bloomAt} this wk
-          {scale.personalized ? `, based on last ${HISTORY_WEEKS} wks.` : ". This adjusts to you after a few weeks of history."}
+        <p className="muted small with-info">
+          Full bloom at {bloomAt} this week
+          <Info>
+            {scale.personalized
+              ? `Based on your last ${HISTORY_WEEKS} weeks.`
+              : "This adjusts to you after a few weeks of history."}
+          </Info>
         </p>
       </div>
     </div>
+  );
+}
+
+const INFO_GLYPHS = {
+  info: (
+    <>
+      <circle cx="6" cy="3.7" r="0.85" fill="currentColor" stroke="none" />
+      <path d="M6 5.6v3" />
+    </>
+  ),
+  help: (
+    <>
+      <path d="M4.6 4.45a1.45 1.45 0 1 1 2.1 1.3c-.45.25-.7.55-.7 1.1v.2" />
+      <circle cx="6" cy="8.75" r="0.8" fill="currentColor" stroke="none" />
+    </>
+  ),
+};
+
+/** An "i" (or "?") that shows `children` on hover (or keyboard focus). */
+function Info({ children, kind = "info" }: { children: string; kind?: keyof typeof INFO_GLYPHS }) {
+  return (
+    <span className="info" tabIndex={0} aria-label={children}>
+      <svg viewBox="0 0 12 12" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round">
+        <circle cx="6" cy="6" r="5.45" />
+        {INFO_GLYPHS[kind]}
+      </svg>
+      <span className="info-tip" role="tooltip">{children}</span>
+    </span>
   );
 }
 

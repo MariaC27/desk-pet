@@ -18,6 +18,18 @@ export const STAGE_NAMES = [
   "Full bloom",
 ] as const;
 
+/** How reaching each stage reads after "N more to …". */
+export const STAGE_GOALS = [
+  "plant a seed",
+  "become a sprout",
+  "become a seedling",
+  "become a young plant",
+  "become leafy",
+  "start budding",
+  "start flowering",
+  "reach full bloom",
+] as const satisfies { length: typeof STAGE_NAMES.length };
+
 export const MAX_STAGE = STAGE_NAMES.length - 1;
 
 /**

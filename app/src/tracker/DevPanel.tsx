@@ -1,6 +1,7 @@
 // Dev-only controls for previewing every state without waiting for real activity.
 // Any change here overrides the real data on the pet until "Use real data" is pressed.
 import { useEffect, useState } from "react";
+import { CHEERS, cheerFor } from "../lib/cheers";
 import {
   getDevOverride,
   notifyDataChanged,
@@ -100,6 +101,14 @@ export function DevPanel() {
           {STAGE_NAMES.map((name, i) => (
             <button key={name} className="chip" onClick={() => update({ count: pet.scale.thresholds[i] })}>
               {name}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">Count notes (the ⓘ on Activity): {cheerFor(pet.count) ?? "none at this count"}</p>
+        <div className="chips">
+          {CHEERS.map((c) => (
+            <button key={c.min} className="chip" onClick={() => update({ count: c.min })}>
+              {c.min}+
             </button>
           ))}
         </div>

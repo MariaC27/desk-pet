@@ -176,7 +176,7 @@ export function Gift() {
             </div>
             <h2>It's the Desk Pet I've been (unsuccessfully) hiding! </h2>
             <p className="gift-lede">
-              I made you a little plant that lives on your Mac desktop and grows with your GitHub contributions. It can also receive 
+              I made you a little plant that lives on your desktop and grows with your GitHub contributions. It can also receive 
               messages and emotions from me. Why am I enabling your "commit maxxing"...
             </p>
 

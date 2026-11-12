@@ -205,7 +205,7 @@ function PairMessages({ onNext }: { onNext: () => void }) {
 
 function Prefs({ onNext }: { onNext: () => void }) {
   const [openAtLogin, setOpenAtLogin] = useState(true);
-  const [scale, setScale] = useState(4);
+  const [scale, setScale] = useState(3);
   const [plant, setPlant] = useState<PlantStyle>("blossom");
 
   const save = async () => {
