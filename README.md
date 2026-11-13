@@ -1,8 +1,8 @@
 # Desk Pet
 
-A little pixel-art plant that lives on your Mac desktop and grows with your
-GitHub contributions. It starts each week as a seed and blooms as you commit,
-open pull requests, review and file issues.
+A little pixel-art plant that lives on your desktop and grows with your
+GitHub contributions. It starts each week as a seed and blooms as you contribute to GitHub that week. If given a pairing code,
+it can also receive messages and emotions from someone.
 
 ![The plant growing from a sprout to full bloom, plus the cactus and aloe styles](docs/plants.png)
 
