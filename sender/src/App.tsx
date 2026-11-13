@@ -15,18 +15,19 @@ export default function App() {
 
   return (
     <div className="page">
-      <header className="masthead">
-        <img src="/favicon.png" alt="" width={36} height={36} />
-        <span>Desk Pet</span>
-        {session && (
+      {/* Signed out, the welcome card is the whole page. */}
+      {session && (
+        <header className="masthead">
+          <img src="/favicon.png" alt="" width={36} height={36} />
+          <span>Desk Pet</span>
           <span className="who">
             {session.user.email} ·{' '}
             <button className="link" onClick={() => supabase.auth.signOut()}>
               Sign out
             </button>
           </span>
-        )}
-      </header>
+        </header>
+      )}
       {session === undefined ? null : session ? <Home /> : <SignIn />}
     </div>
   )

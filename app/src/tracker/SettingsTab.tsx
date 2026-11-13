@@ -186,10 +186,25 @@ export function SettingsTab() {
 
       {error && <p className="error">{error}</p>}
 
-      <p className="muted small center">
-        To remove Desk Pet completely, quit it and drag it from Applications to the Trash.
-      </p>
+      <Heart />
     </section>
+  );
+}
+
+/** The pixel heart from the gift page, with a note on hover. */
+function Heart() {
+  const note = "happy bday i luvvv you";
+  return (
+    <span className="heart" tabIndex={0} aria-label={note}>
+      <svg viewBox="0 0 7 6" width="14" height="12" shapeRendering="crispEdges" aria-hidden>
+        <path d="M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z" fill="#4a3432" />
+        <path d="M1 1h2v1h1V1h2v2H5v1H4v1H3V4H2V3H1z" fill="#ef7fae" />
+        <path d="M1 1h1v1H1z" fill="#ffb3d1" />
+      </svg>
+      <span className="info-tip" role="tooltip">
+        {note}
+      </span>
+    </span>
   );
 }
 

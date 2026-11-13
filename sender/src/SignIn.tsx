@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { PixelEnvelope } from './PixelEnvelope'
 import { supabase } from './supabase'
 
 export function SignIn() {
@@ -27,8 +28,9 @@ export function SignIn() {
 
   if (state === 'sent') {
     return (
-      <main className="card narrow center">
-        <h1>Check your inbox</h1>
+      <main className="card narrow center welcome">
+        <PixelEnvelope />
+        <h1 className="pixel-title">Check your inbox</h1>
         <p className="muted">
           We sent a sign-in link to <strong>{email}</strong>. Open it on this device to continue.
         </p>
@@ -40,9 +42,10 @@ export function SignIn() {
   }
 
   return (
-    <main className="card narrow">
-      <h1>Send a little note</h1>
-      <p className="muted">Sign in to write to someone's desk plant.</p>
+    <main className="card narrow center welcome">
+      <PixelEnvelope />
+      <h1 className="pixel-title">Welcome to Desk Pet</h1>
+      <p className="muted">Sign in to send little notes and feelings to someone's desk plant.</p>
       <form className="stack" onSubmit={submit}>
         <input
           type="email"

@@ -362,3 +362,59 @@ textarea {
   opacity: 0.5;
   cursor: default;
 }
+
+/* ---- welcome / sign-in ---- */
+
+.card.welcome {
+  margin-top: 12vh;
+  padding: 32px 28px 28px;
+  gap: 14px;
+}
+
+.welcome form {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.welcome .button.primary {
+  align-self: stretch;
+}
+
+.pixel-title {
+  font-family: 'Pixelify Sans', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.pixel-envelope {
+  margin-bottom: 4px;
+}
+
+.pixel-envelope-body {
+  animation: envelope-bob 2.4s steps(2, jump-none) infinite;
+}
+
+.pixel-sparkle {
+  animation: sparkle 2.1s steps(1) infinite;
+}
+
+@keyframes envelope-bob {
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes sparkle {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-envelope-body,
+  .pixel-sparkle {
+    animation: none;
+  }
+}
